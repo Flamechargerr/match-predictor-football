@@ -1,10 +1,9 @@
-
 import { MatchPrediction } from '@/types';
 
 // Base model interface for all ML models
 export interface MLModel {
-  train(xTrain: number[][], yTrain: number[]): void;
-  predict(features: number[]): { prediction: number, confidence: number };
+  train(xTrain: number[][], yTrain: number[]): void | Promise<void>;
+  predict(features: number[]): { prediction: number, confidence: number } | Promise<{ prediction: number, confidence: number }>;
   getAccuracy(): number;
 }
 
