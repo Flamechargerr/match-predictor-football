@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 
 interface ConfidenceBarProps {
@@ -35,20 +35,25 @@ const ConfidenceBar: React.FC<ConfidenceBarProps> = ({
   const backgroundGradient = color === "bg-primary" ? getBackgroundGradient() : color;
 
   return (
-    <div className={`prediction-confidence-bar relative h-2 rounded-full overflow-hidden bg-gray-200 ${className}`}>
+    <div className={`prediction-confidence-bar relative h-3 rounded-full overflow-hidden bg-gray-200 ${className}`}>
       <motion.div
         initial={{ width: 0 }}
         animate={{ width: `${percentage}%` }}
         transition={{ duration: 1, ease: "easeOut" }}
         className={`h-full ${backgroundGradient}`}
       />
+      <div className="flex justify-between w-full text-[10px] text-gray-500 font-medium absolute top-[-18px]">
+        <span>0%</span>
+        <span>50%</span>
+        <span>100%</span>
+      </div>
       <motion.span 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.7, duration: 0.3 }}
         className="absolute top-[-18px] right-0 text-[10px] text-gray-500 font-medium"
       >
-        {confidenceLevel}
+        {confidenceLevel} ({percentage.toFixed(1)}%)
       </motion.span>
     </div>
   );

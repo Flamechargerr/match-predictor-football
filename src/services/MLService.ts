@@ -1,65 +1,6 @@
-
 import * as tf from '@tensorflow/tfjs';
 import { MatchPrediction, Team } from '@/types';
-
-// Real Premier League 2022-2023 season dataset
-// Format: [homeGoals, awayGoals, homeShots, awayShots, homeShotsOnTarget, awayShotsOnTarget, homeRedCards, awayRedCards, result]
-// Result: 0 = Home Win, 1 = Draw, 2 = Away Win
-const footballMatchData = [
-  // Arsenal matches
-  [3, 1, 16, 10, 9, 3, 0, 0, 0], // Arsenal vs Tottenham
-  [3, 0, 14, 8, 8, 2, 0, 0, 0], // Arsenal vs Bournemouth
-  [1, 1, 15, 9, 7, 4, 0, 0, 1], // Arsenal vs Brentford
-  [4, 1, 17, 7, 11, 3, 0, 0, 0], // Arsenal vs Crystal Palace
-  [1, 3, 13, 15, 5, 8, 0, 0, 2], // Arsenal vs Man City
-  
-  // Liverpool matches
-  [2, 1, 14, 11, 7, 5, 0, 0, 0], // Liverpool vs Newcastle
-  [7, 0, 20, 6, 13, 2, 0, 0, 0], // Liverpool vs Man United
-  [1, 2, 12, 14, 5, 8, 0, 0, 2], // Liverpool vs Leeds
-  [0, 0, 11, 12, 4, 4, 0, 1, 1], // Liverpool vs Chelsea
-  [4, 3, 19, 13, 11, 6, 0, 0, 0], // Liverpool vs Tottenham
-  
-  // Man City matches
-  [4, 0, 18, 5, 12, 2, 0, 0, 0], // Man City vs Southampton
-  [6, 3, 22, 12, 14, 5, 0, 0, 0], // Man City vs Man United
-  [3, 1, 15, 10, 8, 4, 0, 0, 0], // Man City vs Brighton
-  [4, 1, 16, 8, 9, 3, 0, 0, 0], // Man City vs Fulham
-  [1, 1, 14, 13, 6, 7, 0, 0, 1], // Man City vs Everton
-  
-  // Chelsea matches
-  [1, 1, 12, 11, 5, 5, 0, 0, 1], // Chelsea vs Man United
-  [2, 0, 15, 8, 8, 3, 0, 0, 0], // Chelsea vs Bournemouth
-  [0, 4, 7, 16, 2, 9, 0, 0, 2], // Chelsea vs Man City
-  [0, 1, 9, 11, 3, 5, 0, 0, 2], // Chelsea vs Arsenal
-  [2, 2, 13, 12, 6, 6, 0, 0, 1], // Chelsea vs Everton
-  
-  // Man United matches
-  [2, 1, 13, 10, 6, 4, 0, 1, 0], // Man United vs Crystal Palace
-  [2, 0, 14, 7, 8, 2, 0, 0, 0], // Man United vs Tottenham
-  [0, 7, 6, 20, 2, 13, 0, 0, 2], // Man United vs Liverpool
-  [0, 2, 8, 13, 3, 7, 0, 0, 2], // Man United vs Newcastle
-  [1, 2, 10, 12, 4, 6, 1, 0, 2], // Man United vs Brighton
-  
-  // Tottenham matches
-  [1, 3, 9, 14, 4, 8, 0, 0, 2], // Tottenham vs Arsenal
-  [2, 2, 12, 11, 6, 5, 0, 0, 1], // Tottenham vs Man United
-  [0, 2, 8, 14, 3, 7, 1, 0, 2], // Tottenham vs Aston Villa
-  [5, 0, 19, 5, 12, 2, 0, 0, 0], // Tottenham vs Everton
-  [1, 1, 11, 10, 5, 5, 0, 0, 1], // Tottenham vs West Ham
-  
-  // Additional matches from various teams
-  [3, 2, 16, 13, 9, 7, 0, 1, 0], // Newcastle vs West Ham
-  [2, 2, 12, 12, 5, 6, 0, 0, 1], // Leeds vs Brighton
-  [4, 1, 17, 9, 10, 3, 0, 0, 0], // Brighton vs Leicester
-  [0, 2, 7, 15, 3, 8, 0, 0, 2], // Wolves vs Liverpool
-  [1, 4, 8, 17, 4, 10, 1, 0, 2], // Bournemouth vs Leicester
-  [3, 0, 15, 6, 8, 2, 0, 1, 0], // Fulham vs Aston Villa
-  [0, 0, 9, 9, 4, 3, 0, 0, 1], // Crystal Palace vs Newcastle
-  [2, 1, 13, 10, 7, 4, 0, 0, 0], // Brentford vs Everton
-  [1, 1, 11, 12, 5, 6, 0, 0, 1], // Southampton vs Brighton
-  [3, 3, 15, 14, 8, 7, 1, 1, 1], // Leicester vs Fulham
-];
+import { footballMatchData, trainTestSplit } from '@/data/footballMatchData';
 
 const outcomeLabels = ["Home Win", "Draw", "Away Win"] as const;
 
@@ -69,6 +10,11 @@ class MLService {
   private randomForestModel: RandomForest | null = null;
   private logisticRegressionModel: tf.Sequential | null = null;
   private isModelTrained = false;
+  private modelAccuracies = {
+    naiveBayes: 0,
+    randomForest: 0,
+    logisticRegression: 0
+  };
 
   constructor() {
     this.trainModels();
@@ -77,23 +23,44 @@ class MLService {
   // Train the machine learning models
   private async trainModels(): Promise<void> {
     try {
-      // Prepare data
-      const xTrain = footballMatchData.map(d => [
+      // Split data into train and test sets (80/20 split)
+      const { trainData, testData } = trainTestSplit(footballMatchData, 0.2, 42); // Use seed 42 for reproducible results
+      
+      console.log(`Training on ${trainData.length} samples, testing on ${testData.length} samples`);
+      
+      // Prepare training data
+      const xTrain = trainData.map(d => [
         d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7]
       ]);
-      const yTrain = footballMatchData.map(d => d[8]); // Class labels: 0, 1, or 2
+      const yTrain = trainData.map(d => d[8]); // Class labels: 0, 1, or 2
+      
+      // Prepare test data
+      const xTest = testData.map(d => [
+        d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7]
+      ]);
+      const yTest = testData.map(d => d[8]);
 
       // Train Naive Bayes model
       this.naiveBayesModel = new NaiveBayes();
       this.naiveBayesModel.train(xTrain, yTrain);
+      
+      // Evaluate Naive Bayes model
+      const nbAccuracy = this.evaluateModel(this.naiveBayesModel, xTest, yTest);
+      this.modelAccuracies.naiveBayes = nbAccuracy;
+      console.log(`Naive Bayes accuracy: ${(nbAccuracy * 100).toFixed(2)}%`);
 
       // Train Random Forest model
       this.randomForestModel = new RandomForest(20); // 20 decision trees
       this.randomForestModel.train(xTrain, yTrain);
+      
+      // Evaluate Random Forest model
+      const rfAccuracy = this.evaluateModel(this.randomForestModel, xTest, yTest);
+      this.modelAccuracies.randomForest = rfAccuracy;
+      console.log(`Random Forest accuracy: ${(rfAccuracy * 100).toFixed(2)}%`);
 
       // Train logistic regression model using TensorFlow.js
       const xs = tf.tensor2d(xTrain, [xTrain.length, 8]);
-      const ys = tf.tensor2d(footballMatchData.map(d => {
+      const ys = tf.tensor2d(trainData.map(d => {
         // One-hot encode the result
         if (d[8] === 0) return [1, 0, 0]; // Home win
         if (d[8] === 1) return [0, 1, 0]; // Draw
@@ -114,18 +81,45 @@ class MLService {
       });
 
       await this.logisticRegressionModel.fit(xs, ys, {
-        epochs: 120,
+        epochs: 100,
         batchSize: 8,
         shuffle: true,
         validationSplit: 0.2,
         verbose: 0
       });
+      
+      // Evaluate Logistic Regression model
+      const xsTest = tf.tensor2d(xTest, [xTest.length, 8]);
+      const ysTest = tf.tensor2d(testData.map(d => {
+        if (d[8] === 0) return [1, 0, 0]; // Home win
+        if (d[8] === 1) return [0, 1, 0]; // Draw
+        return [0, 0, 1]; // Away win
+      }), [yTest.length, 3]);
+      
+      const evalResult = await this.logisticRegressionModel.evaluate(xsTest, ysTest) as tf.Scalar[];
+      const lrAccuracy = evalResult[1].dataSync()[0];
+      this.modelAccuracies.logisticRegression = lrAccuracy;
+      console.log(`Logistic Regression accuracy: ${(lrAccuracy * 100).toFixed(2)}%`);
 
       this.isModelTrained = true;
-      console.log("Models trained successfully");
+      console.log("Models trained successfully on Kaggle Premier League dataset");
     } catch (error) {
       console.error("Error training models:", error);
     }
+  }
+  
+  // Evaluate model performance on test data
+  private evaluateModel(model: NaiveBayes | RandomForest, xTest: number[][], yTest: number[]): number {
+    let correct = 0;
+    
+    for (let i = 0; i < xTest.length; i++) {
+      const prediction = model.predict(xTest[i]).prediction;
+      if (prediction === yTest[i]) {
+        correct++;
+      }
+    }
+    
+    return correct / xTest.length;
   }
 
   // Make a prediction based on match statistics
@@ -162,19 +156,19 @@ class MLService {
         modelName: "Naive Bayes",
         outcome: outcomeLabels[naiveBayesPrediction.prediction],
         confidence: parseFloat((naiveBayesPrediction.confidence * 100).toFixed(1)),
-        modelAccuracy: 78.4
+        modelAccuracy: parseFloat((this.modelAccuracies.naiveBayes * 100).toFixed(1))
       },
       {
         modelName: "Random Forest",
         outcome: outcomeLabels[randomForestPrediction.prediction],
         confidence: parseFloat((randomForestPrediction.confidence * 100).toFixed(1)),
-        modelAccuracy: 82.9
+        modelAccuracy: parseFloat((this.modelAccuracies.randomForest * 100).toFixed(1))
       },
       {
         modelName: "Logistic Regression",
         outcome: outcomeLabels[this.getMaxIndex(lrPredArray[0])],
         confidence: parseFloat((Math.max(...lrPredArray[0]) * 100).toFixed(1)),
-        modelAccuracy: 68.5
+        modelAccuracy: parseFloat((this.modelAccuracies.logisticRegression * 100).toFixed(1))
       }
     ];
 
