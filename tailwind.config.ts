@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,21 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				home: {
+					DEFAULT: '#3b82f6',
+					light: '#93c5fd',
+					dark: '#1d4ed8',
+				},
+				away: {
+					DEFAULT: '#ef4444',
+					light: '#fca5a5',
+					dark: '#b91c1c',
+				},
+				neutral: {
+					DEFAULT: '#a855f7',
+					light: '#d8b4fe',
+					dark: '#7e22ce',
 				}
 			},
 			borderRadius: {
@@ -84,12 +100,60 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'fade-in': {
+					'0%': { opacity: '0' },
+					'100%': { opacity: '1' }
+				},
+				'fade-up': {
+					'0%': { opacity: '0', transform: 'translateY(10px)' },
+					'100%': { opacity: '1', transform: 'translateY(0)' }
+				},
+				'scale-in': {
+					'0%': { opacity: '0', transform: 'scale(0.95)' },
+					'100%': { opacity: '1', transform: 'scale(1)' }
+				},
+				'slide-left': {
+					'0%': { transform: 'translateX(100%)' },
+					'100%': { transform: 'translateX(0)' }
+				},
+				'slide-right': {
+					'0%': { transform: 'translateX(-100%)' },
+					'100%': { transform: 'translateX(0)' }
+				},
+				'loading-bar': {
+					'0%': { width: '0%' },
+					'100%': { width: '100%' }
+				},
+				'pulse-opacity': {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0.7' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
-			}
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fade-in 0.5s ease-out',
+				'fade-up': 'fade-up 0.5s ease-out',
+				'scale-in': 'scale-in 0.5s ease-out',
+				'slide-left': 'slide-left 0.5s ease-out',
+				'slide-right': 'slide-right 0.5s ease-out',
+				'loading-bar': 'loading-bar 2s ease-in-out',
+				'pulse-opacity': 'pulse-opacity 1.5s ease-in-out infinite'
+			},
+			backgroundImage: {
+				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+				'gradient-hero': 'linear-gradient(to right, rgb(59, 130, 246, 0.1), rgb(239, 68, 68, 0.1))',
+			},
+			boxShadow: {
+				'card-hover': '0 8px 30px rgba(0, 0, 0, 0.12)',
+				'card-active': '0 30px 60px rgba(0, 0, 0, 0.12)',
+				'prediction': '0 4px 20px rgba(0, 0, 0, 0.06)',
+				'glass': '0 4px 15px rgba(0, 0, 0, 0.1)',
+			},
+			backdropBlur: {
+				'xs': '2px',
+			},
 		}
 	},
 	plugins: [require("tailwindcss-animate")],
