@@ -7,13 +7,13 @@ import TeamStatInput from "@/components/TeamStatInput";
 import PredictionCard from "@/components/PredictionCard";
 import StatsRadarChart from "@/components/StatsRadarChart";
 import ModelPerformanceChart from "@/components/ModelPerformanceChart";
-import TeamPlayers from "@/components/TeamPlayers"; // Import the new component
+import TeamPlayers from "@/components/TeamPlayers";
 import StatisticsIcon from "@/components/StatisticsIcon";
 import ChartIcon from "@/components/ChartIcon";
 import PredictIcon from "@/components/PredictIcon";
 import TrophyIcon from "@/components/TrophyIcon";
 import { teams } from "@/data/teams";
-import { getTeamPlayers } from "@/data/players"; // Import the player data function
+import { getTeamPlayers } from "@/data/players";
 import { modelPerformanceData } from "@/data/models";
 import { type Team, type MatchPrediction, type Player } from "@/types";
 import { Separator } from "@/components/ui/separator";
@@ -67,12 +67,12 @@ const Index = () => {
   const isFormValid = () => {
     return (
       homeTeam.name &&
-      homeTeam.goals &&
+      homeTeam.goals !== "" &&
       homeTeam.shots &&
       homeTeam.shotsOnTarget &&
       homeTeam.redCards &&
       awayTeam.name &&
-      awayTeam.goals &&
+      awayTeam.goals !== "" &&
       awayTeam.shots &&
       awayTeam.shotsOnTarget &&
       awayTeam.redCards
