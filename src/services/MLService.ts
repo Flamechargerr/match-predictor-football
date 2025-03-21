@@ -65,9 +65,9 @@ const outcomeLabels = ["Home Win", "Draw", "Away Win"] as const;
 
 // Define machine learning service
 class MLService {
-  private neuralNetworkModel: tf.LayersModel | null = null;
+  private neuralNetworkModel: tf.Sequential | null = null;
   private logisticRegressionModel: tf.Sequential | null = null;
-  private deepNetworkModel: tf.LayersModel | null = null;
+  private deepNetworkModel: tf.Sequential | null = null;
   private isModelTrained = false;
 
   constructor() {
@@ -99,7 +99,9 @@ class MLService {
         activation: 'relu',
         inputShape: [8]
       }));
-      this.neuralNetworkModel.add(tf.layers.dropout(0.2));
+      this.neuralNetworkModel.add(tf.layers.dropout({
+        rate: 0.2
+      }));
       this.neuralNetworkModel.add(tf.layers.dense({
         units: 8,
         activation: 'relu'
@@ -152,12 +154,16 @@ class MLService {
         activation: 'relu',
         inputShape: [8]
       }));
-      this.deepNetworkModel.add(tf.layers.dropout(0.3));
+      this.deepNetworkModel.add(tf.layers.dropout({
+        rate: 0.3
+      }));
       this.deepNetworkModel.add(tf.layers.dense({
         units: 16,
         activation: 'relu'
       }));
-      this.deepNetworkModel.add(tf.layers.dropout(0.2));
+      this.deepNetworkModel.add(tf.layers.dropout({
+        rate: 0.2
+      }));
       this.deepNetworkModel.add(tf.layers.dense({
         units: 8,
         activation: 'relu'
@@ -211,9 +217,9 @@ class MLService {
     const inputTensor = tf.tensor2d([inputData], [1, 8]);
 
     // Get predictions from all models
-    const neuralNetworkPrediction = this.neuralNetworkModel!.predict(inputTensor) as tf.Tensor2D;
-    const logisticRegressionPrediction = this.logisticRegressionModel!.predict(inputTensor) as tf.Tensor2D;
-    const deepNetworkPrediction = this.deepNetworkModel!.predict(inputTensor) as tf.Tensor2D;
+    const neuralNetworkPrediction = this.neuralNetworkModel!.predict(inputTensor) as tf.Tensor;
+    const logisticRegressionPrediction = this.logisticRegressionModel!.predict(inputTensor) as tf.Tensor;
+    const deepNetworkPrediction = this.deepNetworkModel!.predict(inputTensor) as tf.Tensor;
 
     // Convert predictions to arrays
     const nnPredArray = await neuralNetworkPrediction.array() as number[][];
