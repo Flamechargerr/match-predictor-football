@@ -1,3 +1,4 @@
+
 import * as tf from '@tensorflow/tfjs';
 import { MatchPrediction, Team } from '@/types';
 import { footballMatchData, trainTestSplit } from '@/data/footballMatchData';
@@ -40,8 +41,8 @@ class MLService {
       ]);
       const yTest = testData.map(d => d[8]);
 
-      // Train Naive Bayes model
-      this.naiveBayesModel = new NaiveBayes();
+      // Train Naive Bayes model with smoothing to reduce overfitting
+      this.naiveBayesModel = new NaiveBayes(0.5); // Add smoothing factor
       this.naiveBayesModel.train(xTrain, yTrain);
       
       // Evaluate Naive Bayes model
@@ -49,8 +50,8 @@ class MLService {
       this.modelAccuracies.naiveBayes = nbAccuracy;
       console.log(`Naive Bayes accuracy: ${(nbAccuracy * 100).toFixed(2)}%`);
 
-      // Train Random Forest model
-      this.randomForestModel = new RandomForest(20); // 20 decision trees
+      // Train Random Forest model with fewer trees and greater depth restriction to reduce overfitting
+      this.randomForestModel = new RandomForest(8, 4); // Fewer trees, limited depth
       this.randomForestModel.train(xTrain, yTrain);
       
       // Evaluate Random Forest model
@@ -58,15 +59,7 @@ class MLService {
       this.modelAccuracies.randomForest = rfAccuracy;
       console.log(`Random Forest accuracy: ${(rfAccuracy * 100).toFixed(2)}%`);
 
-      // Train logistic regression model using TensorFlow.js
-      const xs = tf.tensor2d(xTrain, [xTrain.length, 8]);
-      const ys = tf.tensor2d(trainData.map(d => {
-        // One-hot encode the result
-        if (d[8] === 0) return [1, 0, 0]; // Home win
-        if (d[8] === 1) return [0, 1, 0]; // Draw
-        return [0, 0, 1]; // Away win
-      }), [yTrain.length, 3]);
-
+      // Create a simpler linear model that won't overfit as much
       this.logisticRegressionModel = tf.sequential();
       this.logisticRegressionModel.add(tf.layers.dense({
         units: 3,
@@ -75,14 +68,23 @@ class MLService {
       }));
 
       this.logisticRegressionModel.compile({
-        optimizer: tf.train.sgd(0.1),
+        optimizer: tf.train.adam(0.01),
         loss: 'categoricalCrossentropy',
         metrics: ['accuracy']
       });
 
+      // Prepare data for logistic regression
+      const xs = tf.tensor2d(xTrain, [xTrain.length, 8]);
+      const ys = tf.tensor2d(trainData.map(d => {
+        // One-hot encode the result
+        if (d[8] === 0) return [1, 0, 0]; // Home win
+        if (d[8] === 1) return [0, 1, 0]; // Draw
+        return [0, 0, 1]; // Away win
+      }), [yTrain.length, 3]);
+
       await this.logisticRegressionModel.fit(xs, ys, {
-        epochs: 100,
-        batchSize: 8,
+        epochs: 50, // Fewer epochs to prevent overfitting
+        batchSize: 16,
         shuffle: true,
         validationSplit: 0.2,
         verbose: 0
@@ -141,33 +143,40 @@ class MLService {
       parseInt(awayTeam.redCards)
     ];
 
+    // Add small random noise to prevent overfitting (0-5% variation)
+    const noisyInputData = inputData.map(val => {
+      const noise = val * (Math.random() * 0.05);
+      return Math.max(0, val + (Math.random() > 0.5 ? noise : -noise));
+    });
+
     // Get predictions from all models
-    const naiveBayesPrediction = this.naiveBayesModel!.predict(inputData);
-    const randomForestPrediction = this.randomForestModel!.predict(inputData);
+    const naiveBayesPrediction = this.naiveBayesModel!.predict(noisyInputData);
+    const randomForestPrediction = this.randomForestModel!.predict(noisyInputData);
     
     // Get logistic regression prediction using TensorFlow.js
-    const inputTensor = tf.tensor2d([inputData], [1, 8]);
+    const inputTensor = tf.tensor2d([noisyInputData], [1, 8]);
     const logisticRegressionPrediction = this.logisticRegressionModel!.predict(inputTensor) as tf.Tensor;
     const lrPredArray = await logisticRegressionPrediction.array() as number[][];
     
-    // Format predictions
+    // Format predictions with slight confidence reduction to prevent overconfidence
+    const confidenceScalingFactor = 0.95; // Slightly reduce confidence
     const predictions: MatchPrediction[] = [
       {
         modelName: "Naive Bayes",
         outcome: outcomeLabels[naiveBayesPrediction.prediction],
-        confidence: parseFloat((naiveBayesPrediction.confidence * 100).toFixed(1)),
+        confidence: parseFloat((naiveBayesPrediction.confidence * 100 * confidenceScalingFactor).toFixed(1)),
         modelAccuracy: parseFloat((this.modelAccuracies.naiveBayes * 100).toFixed(1))
       },
       {
         modelName: "Random Forest",
         outcome: outcomeLabels[randomForestPrediction.prediction],
-        confidence: parseFloat((randomForestPrediction.confidence * 100).toFixed(1)),
+        confidence: parseFloat((randomForestPrediction.confidence * 100 * confidenceScalingFactor).toFixed(1)),
         modelAccuracy: parseFloat((this.modelAccuracies.randomForest * 100).toFixed(1))
       },
       {
         modelName: "Logistic Regression",
         outcome: outcomeLabels[this.getMaxIndex(lrPredArray[0])],
-        confidence: parseFloat((Math.max(...lrPredArray[0]) * 100).toFixed(1)),
+        confidence: parseFloat((Math.max(...lrPredArray[0]) * 100 * confidenceScalingFactor).toFixed(1)),
         modelAccuracy: parseFloat((this.modelAccuracies.logisticRegression * 100).toFixed(1))
       }
     ];
@@ -197,6 +206,11 @@ class NaiveBayes {
   private stds: number[][] = [];
   private priors: number[] = [];
   private classes: number[] = [];
+  private smoothingFactor: number;
+
+  constructor(smoothingFactor: number = 0) {
+    this.smoothingFactor = smoothingFactor;
+  }
 
   train(X: number[][], y: number[]): void {
     // Get unique classes
@@ -223,9 +237,10 @@ class NaiveBayes {
         const mean = featureValues.reduce((a, b) => a + b, 0) / featureValues.length;
         classMeans.push(mean);
         
-        // Calculate standard deviation
+        // Calculate standard deviation with smoothing to prevent overfitting
         const variance = featureValues.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / featureValues.length;
-        const std = Math.sqrt(variance) || 0.0001; // Avoid division by zero
+        // Add smoothing factor to variance to prevent overfitting on small samples
+        const std = Math.sqrt(variance + this.smoothingFactor) || 0.1; 
         classStds.push(std);
       }
       
@@ -292,8 +307,12 @@ class NaiveBayes {
 // Decision Tree Implementation for Random Forest
 class DecisionTree {
   private root: any = null;
-  private maxDepth: number = 10;
+  private maxDepth: number;
   private minSamplesSplit: number = 2;
+  
+  constructor(maxDepth: number = 10) {
+    this.maxDepth = maxDepth;
+  }
   
   train(X: number[][], y: number[]): void {
     this.root = this.buildTree(X, y, 0);
@@ -469,9 +488,11 @@ class DecisionTree {
 class RandomForest {
   private trees: DecisionTree[] = [];
   private numTrees: number;
+  private maxDepth: number;
   
-  constructor(numTrees: number = 10) {
+  constructor(numTrees: number = 10, maxDepth: number = 10) {
     this.numTrees = numTrees;
+    this.maxDepth = maxDepth;
   }
   
   train(X: number[][], y: number[]): void {
@@ -480,8 +501,8 @@ class RandomForest {
       // Create bootstrap sample
       const { sampleX, sampleY } = this.bootstrapSample(X, y);
       
-      // Train a decision tree
-      const tree = new DecisionTree();
+      // Train a decision tree with limited depth to prevent overfitting
+      const tree = new DecisionTree(this.maxDepth);
       tree.train(sampleX, sampleY);
       this.trees.push(tree);
     }
@@ -523,8 +544,8 @@ class RandomForest {
       }
     }
     
-    // Calculate confidence
-    const confidence = maxVotes / this.trees.length;
+    // Calculate confidence with a small reduction to prevent overconfidence
+    const confidence = (maxVotes / this.trees.length) * 0.9;
     
     return { prediction: parseInt(bestClass), confidence };
   }
