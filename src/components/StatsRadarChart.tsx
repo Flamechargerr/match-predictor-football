@@ -105,7 +105,7 @@ const StatsRadarChart: React.FC<StatsRadarChartProps> = ({ data, className = "" 
                 },
                 titleFont: {
                   family: "'Inter', sans-serif",
-                  weight: "600",
+                  weight: 600, // Changed from "600" to 600 (number)
                 },
               },
             },
