@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
@@ -17,6 +16,7 @@ import { getTeamPlayers } from "@/data/players";
 import { modelPerformanceData } from "@/data/models";
 import { type Team, type MatchPrediction, type Player } from "@/types";
 import { Separator } from "@/components/ui/separator";
+import { mlService } from "@/services/MLService";
 
 const Index = () => {
   // State for home team data
@@ -80,7 +80,7 @@ const Index = () => {
   };
 
   // Handle prediction
-  const handlePredict = () => {
+  const handlePredict = async () => {
     if (!isFormValid()) {
       toast({
         title: "Missing information",
@@ -101,58 +101,10 @@ const Index = () => {
 
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      // Mock prediction logic
-      const homeGoals = parseInt(homeTeam.goals);
-      const awayGoals = parseInt(awayTeam.goals);
-      
-      let baseOutcome: "Home Win" | "Away Win" | "Draw";
-      
-      if (homeGoals > awayGoals) {
-        baseOutcome = "Home Win";
-      } else if (homeGoals < awayGoals) {
-        baseOutcome = "Away Win";
-      } else {
-        // If goals are equal, consider shots on target
-        const homeShotsOnTarget = parseInt(homeTeam.shotsOnTarget);
-        const awayShotsOnTarget = parseInt(awayTeam.shotsOnTarget);
-        
-        if (homeShotsOnTarget > awayShotsOnTarget) {
-          baseOutcome = "Home Win";
-        } else if (homeShotsOnTarget < awayShotsOnTarget) {
-          baseOutcome = "Away Win";
-        } else {
-          baseOutcome = "Draw";
-        }
-      }
-      
-      // Generate mock predictions from different models
-      const mockPredictions: MatchPrediction[] = [
-        {
-          outcome: baseOutcome,
-          confidence: Math.min(92.7, 65 + Math.random() * 30),
-          modelName: "Logistic Regression",
-          modelAccuracy: 65.7,
-        },
-        {
-          // Higher chance of agreement but sometimes differs
-          outcome: Math.random() > 0.2 ? baseOutcome : (baseOutcome === "Home Win" ? "Away Win" : "Home Win"),
-          confidence: Math.min(100, 70 + Math.random() * 30),
-          modelName: "Naive Bayes",
-          modelAccuracy: 62.4,
-        },
-        {
-          // Random Forest is more conservative with confidence
-          outcome: Math.random() > 0.15 ? baseOutcome : "Draw",
-          confidence: Math.min(84, 60 + Math.random() * 25),
-          modelName: "Random Forest",
-          modelAccuracy: 63.7,
-        },
-      ];
-      
-      setPredictions(mockPredictions);
-      setIsLoading(false);
+    try {
+      // Use MLService to get predictions
+      const mlPredictions = await mlService.predictMatch(homeTeam, awayTeam);
+      setPredictions(mlPredictions);
       setShowResults(true);
       
       // Scroll to results
@@ -162,7 +114,16 @@ const Index = () => {
           block: "start"
         });
       }, 100);
-    }, 1500);
+    } catch (error) {
+      console.error("Prediction error:", error);
+      toast({
+        title: "Prediction error",
+        description: "An error occurred while making predictions",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
