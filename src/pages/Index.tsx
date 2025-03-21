@@ -15,8 +15,9 @@ import TrophyIcon from "@/components/TrophyIcon";
 import { teams } from "@/data/teams";
 import { getTeamPlayers } from "@/data/players";
 import { modelPerformanceData } from "@/data/models";
-import { type Team, type MatchPrediction, type Player } from "@/types";
+import { type Team, type MatchPrediction, type Player, type TrainedModel } from "@/types";
 import { Separator } from "@/components/ui/separator";
+import { MLService } from "@/services/MLService";
 
 const Index = () => {
   // State for home team data
@@ -49,6 +50,34 @@ const Index = () => {
   
   // State to control visibility of results section
   const [showResults, setShowResults] = useState(false);
+  
+  // State for ML models
+  const [mlModels, setMlModels] = useState<TrainedModel[]>([]);
+  
+  // State for ML initialization
+  const [isMLInitialized, setIsMLInitialized] = useState(false);
+
+  // Initialize ML models
+  useEffect(() => {
+    const initializeML = async () => {
+      try {
+        await MLService.initialize();
+        const models = await MLService.getModels();
+        setMlModels(models);
+        setIsMLInitialized(true);
+        console.log("ML models loaded:", models);
+      } catch (error) {
+        console.error("Error initializing ML models:", error);
+        toast({
+          title: "ML Initialization Error",
+          description: "Could not initialize machine learning models. Using fallback predictions.",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    initializeML();
+  }, []);
 
   // Update players when team changes
   useEffect(() => {
@@ -79,8 +108,8 @@ const Index = () => {
     );
   };
 
-  // Handle prediction
-  const handlePredict = () => {
+  // Handle prediction using ML models
+  const handlePredict = async () => {
     if (!isFormValid()) {
       toast({
         title: "Missing information",
@@ -101,58 +130,48 @@ const Index = () => {
 
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      // Mock prediction logic
-      const homeGoals = parseInt(homeTeam.goals);
-      const awayGoals = parseInt(awayTeam.goals);
-      
-      let baseOutcome: "Home Win" | "Away Win" | "Draw";
-      
-      if (homeGoals > awayGoals) {
-        baseOutcome = "Home Win";
-      } else if (homeGoals < awayGoals) {
-        baseOutcome = "Away Win";
-      } else {
-        // If goals are equal, consider shots on target
-        const homeShotsOnTarget = parseInt(homeTeam.shotsOnTarget);
-        const awayShotsOnTarget = parseInt(awayTeam.shotsOnTarget);
-        
-        if (homeShotsOnTarget > awayShotsOnTarget) {
-          baseOutcome = "Home Win";
-        } else if (homeShotsOnTarget < awayShotsOnTarget) {
-          baseOutcome = "Away Win";
-        } else {
-          baseOutcome = "Draw";
-        }
-      }
-      
-      // Generate mock predictions from different models
-      const mockPredictions: MatchPrediction[] = [
-        {
-          outcome: baseOutcome,
-          confidence: Math.min(92.7, 65 + Math.random() * 30),
-          modelName: "Logistic Regression",
-          modelAccuracy: 65.7,
-        },
-        {
-          // Higher chance of agreement but sometimes differs
-          outcome: Math.random() > 0.2 ? baseOutcome : (baseOutcome === "Home Win" ? "Away Win" : "Home Win"),
-          confidence: Math.min(100, 70 + Math.random() * 30),
-          modelName: "Naive Bayes",
-          modelAccuracy: 62.4,
-        },
-        {
-          // Random Forest is more conservative with confidence
-          outcome: Math.random() > 0.15 ? baseOutcome : "Draw",
-          confidence: Math.min(84, 60 + Math.random() * 25),
-          modelName: "Random Forest",
-          modelAccuracy: 63.7,
-        },
+    try {
+      // Create input features for ML models
+      const features = [
+        Number(homeTeam.goals),
+        Number(awayTeam.goals),
+        Number(homeTeam.shots),
+        Number(awayTeam.shots),
+        Number(homeTeam.shotsOnTarget),
+        Number(awayTeam.shotsOnTarget),
+        Number(homeTeam.redCards),
+        Number(awayTeam.redCards)
       ];
       
-      setPredictions(mockPredictions);
-      setIsLoading(false);
+      console.log("Input features:", features);
+      
+      // Get predictions from all trained models
+      const modelPredictions: MatchPrediction[] = [];
+      
+      if (isMLInitialized && mlModels.length > 0) {
+        console.log("Making predictions with trained models");
+        // Make predictions with trained models
+        for (const model of mlModels) {
+          const prediction = await model.predict(features);
+          modelPredictions.push({
+            outcome: prediction.outcome,
+            confidence: prediction.confidence,
+            modelName: model.name,
+            modelAccuracy: model.accuracy,
+          });
+        }
+      } else {
+        console.log("Using fallback predictions (ML not initialized)");
+        // Fallback if ML models not loaded
+        modelPredictions.push({
+          outcome: "Home Win",
+          confidence: 65.4,
+          modelName: "Fallback Model",
+          modelAccuracy: 60.0,
+        });
+      }
+      
+      setPredictions(modelPredictions);
       setShowResults(true);
       
       // Scroll to results
@@ -162,7 +181,16 @@ const Index = () => {
           block: "start"
         });
       }, 100);
-    }, 1500);
+    } catch (error) {
+      console.error("Prediction error:", error);
+      toast({
+        title: "Prediction error",
+        description: "An error occurred while making predictions",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
