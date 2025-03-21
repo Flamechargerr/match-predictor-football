@@ -19,3 +19,15 @@ export type ModelPerformance = {
   accuracy: number;
   precision: number;
 };
+
+export type Player = {
+  id: string;
+  name: string;
+  position: string;
+  rating: number;
+  image?: string;
+};
+
+export type TeamWithPlayers = Team & {
+  players: Player[];
+};

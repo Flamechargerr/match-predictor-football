@@ -7,13 +7,15 @@ import TeamStatInput from "@/components/TeamStatInput";
 import PredictionCard from "@/components/PredictionCard";
 import StatsRadarChart from "@/components/StatsRadarChart";
 import ModelPerformanceChart from "@/components/ModelPerformanceChart";
+import TeamPlayers from "@/components/TeamPlayers"; // Import the new component
 import StatisticsIcon from "@/components/StatisticsIcon";
 import ChartIcon from "@/components/ChartIcon";
 import PredictIcon from "@/components/PredictIcon";
 import TrophyIcon from "@/components/TrophyIcon";
 import { teams } from "@/data/teams";
+import { getTeamPlayers } from "@/data/players"; // Import the player data function
 import { modelPerformanceData } from "@/data/models";
-import { type Team, type MatchPrediction } from "@/types";
+import { type Team, type MatchPrediction, type Player } from "@/types";
 import { Separator } from "@/components/ui/separator";
 
 const Index = () => {
@@ -35,6 +37,10 @@ const Index = () => {
     redCards: "",
   });
 
+  // State for team players
+  const [homePlayers, setHomePlayers] = useState<Player[]>([]);
+  const [awayPlayers, setAwayPlayers] = useState<Player[]>([]);
+
   // State for predictions
   const [predictions, setPredictions] = useState<MatchPrediction[]>([]);
   
@@ -43,6 +49,19 @@ const Index = () => {
   
   // State to control visibility of results section
   const [showResults, setShowResults] = useState(false);
+
+  // Update players when team changes
+  useEffect(() => {
+    if (homeTeam.name) {
+      setHomePlayers(getTeamPlayers(homeTeam.name));
+    }
+  }, [homeTeam.name]);
+
+  useEffect(() => {
+    if (awayTeam.name) {
+      setAwayPlayers(getTeamPlayers(awayTeam.name));
+    }
+  }, [awayTeam.name]);
 
   // Check if form is valid
   const isFormValid = () => {
@@ -203,6 +222,26 @@ const Index = () => {
               className="animate-fade-in"
             />
           </div>
+
+          {/* Display Team Players if teams are selected */}
+          {(homeTeam.name || awayTeam.name) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-6">
+              {homeTeam.name && (
+                <TeamPlayers 
+                  teamName={homeTeam.name} 
+                  players={homePlayers}
+                  className="bg-blue-50/50 p-4 rounded-lg border border-blue-100"
+                />
+              )}
+              {awayTeam.name && (
+                <TeamPlayers 
+                  teamName={awayTeam.name} 
+                  players={awayPlayers}
+                  className="bg-red-50/50 p-4 rounded-lg border border-red-100"
+                />
+              )}
+            </div>
+          )}
 
           {/* Submit Button */}
           <Button 
