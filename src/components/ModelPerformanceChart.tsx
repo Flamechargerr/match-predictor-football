@@ -6,6 +6,7 @@ type ModelData = {
   name: string;
   accuracy: number;
   precision: number;
+  f1Score?: number;
 };
 
 interface ModelPerformanceChartProps {
@@ -19,11 +20,13 @@ const ModelPerformanceChart: React.FC<ModelPerformanceChartProps> = ({ models, c
     name: model.name,
     Accuracy: Number((model.accuracy * 100).toFixed(1)),
     Precision: Number((model.precision * 100).toFixed(1)),
+    F1Score: model.f1Score ? Number((model.f1Score * 100).toFixed(1)) : undefined,
   }));
 
   // Custom colors for bars
   const accuracyColor = "rgba(99, 102, 241, 0.8)";
   const precisionColor = "rgba(52, 211, 153, 0.8)";
+  const f1ScoreColor = "rgba(236, 72, 153, 0.8)";
 
   return (
     <div className={`w-full h-full ${className}`}>
@@ -88,6 +91,16 @@ const ModelPerformanceChart: React.FC<ModelPerformanceChartProps> = ({ models, c
             animationBegin={300}
             name="Precision"
           />
+          {chartData[0].F1Score !== undefined && (
+            <Bar 
+              dataKey="F1Score" 
+              fill={f1ScoreColor} 
+              radius={[4, 4, 0, 0]} 
+              animationDuration={1500}
+              animationBegin={600}
+              name="F1 Score"
+            />
+          )}
         </BarChart>
       </ResponsiveContainer>
     </div>
