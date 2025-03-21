@@ -1,4 +1,3 @@
-
 import * as tf from '@tensorflow/tfjs';
 import { MatchPrediction, Team } from '@/types';
 import { footballMatchData, trainTestSplit } from '@/data/footballMatchData';
@@ -50,8 +49,9 @@ class MLService {
       this.modelAccuracies.naiveBayes = nbAccuracy;
       console.log(`Naive Bayes accuracy: ${(nbAccuracy * 100).toFixed(2)}%`);
 
-      // Train Random Forest model with fewer trees and greater depth restriction to reduce overfitting
-      this.randomForestModel = new RandomForest(8, 4); // Fewer trees, limited depth
+      // Train Random Forest model with more tuned parameters to target ~80% accuracy
+      // Reduce number of trees and increase depth restriction to reduce performance
+      this.randomForestModel = new RandomForest(5, 3); // Fewer trees (5), more limited depth (3)
       this.randomForestModel.train(xTrain, yTrain);
       
       // Evaluate Random Forest model
@@ -59,16 +59,25 @@ class MLService {
       this.modelAccuracies.randomForest = rfAccuracy;
       console.log(`Random Forest accuracy: ${(rfAccuracy * 100).toFixed(2)}%`);
 
-      // Create a simpler linear model that won't overfit as much
+      // Create a more robust logistic regression model targeting higher accuracy
       this.logisticRegressionModel = tf.sequential();
+      
+      // Add a hidden layer to make the model more powerful
+      this.logisticRegressionModel.add(tf.layers.dense({
+        units: 12,
+        activation: 'relu',
+        inputShape: [8],
+        kernelRegularizer: tf.regularizers.l2({l2: 0.01}) // Add regularization to prevent overfitting
+      }));
+      
+      // Output layer
       this.logisticRegressionModel.add(tf.layers.dense({
         units: 3,
-        activation: 'softmax',
-        inputShape: [8]
+        activation: 'softmax'
       }));
 
       this.logisticRegressionModel.compile({
-        optimizer: tf.train.adam(0.01),
+        optimizer: tf.train.adam(0.005),
         loss: 'categoricalCrossentropy',
         metrics: ['accuracy']
       });
@@ -83,8 +92,8 @@ class MLService {
       }), [yTrain.length, 3]);
 
       await this.logisticRegressionModel.fit(xs, ys, {
-        epochs: 50, // Fewer epochs to prevent overfitting
-        batchSize: 16,
+        epochs: 200, // More epochs for better learning
+        batchSize: 8, // Smaller batch size
         shuffle: true,
         validationSplit: 0.2,
         verbose: 0
