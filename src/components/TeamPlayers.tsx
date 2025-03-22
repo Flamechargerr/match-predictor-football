@@ -1,102 +1,52 @@
 
-import React from "react";
-import { Player } from "@/types";
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { motion } from "framer-motion";
+import React, { useMemo } from "react";
+import { type Player } from "@/types";
 
 interface TeamPlayersProps {
   teamName: string;
   players: Player[];
+  showAll: boolean;
   className?: string;
-  showAll?: boolean; // Prop to toggle showing all players
 }
 
-const TeamPlayers: React.FC<TeamPlayersProps> = ({ 
-  teamName, 
-  players, 
-  className = "",
-  showAll = false 
+const TeamPlayers: React.FC<TeamPlayersProps> = ({
+  teamName,
+  players,
+  showAll,
+  className,
 }) => {
-  if (!players || players.length === 0) {
-    return (
-      <div className={`text-center p-4 ${className}`}>
-        <p className="text-muted-foreground">No player data available for {teamName}</p>
-      </div>
-    );
+  const displayedPlayers = useMemo(() => {
+    // Show 11 players in advanced view, only 5 in simple view
+    return showAll ? players.slice(0, 11) : players.slice(0, 5);
+  }, [players, showAll]);
+
+  if (!players.length) {
+    return null;
   }
 
-  // Get all 11 players in advanced view or just the first 5 in simple view
-  const displayPlayers = showAll ? players.slice(0, 11) : players.slice(0, 5);
-
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
-  };
-
   return (
-    <div className={`space-y-3 ${className}`}>
-      <h3 className="text-lg font-semibold">{teamName} Players {!showAll && players.length > 5 ? `(Top 5 of ${players.length})` : ''}</h3>
-      
-      <motion.div 
-        className="grid grid-cols-1 gap-2"
-        variants={container}
-        initial="hidden"
-        animate="show"
-      >
-        {displayPlayers.map((player) => (
-          <motion.div key={player.id} variants={item}>
-            <Card className="overflow-hidden hover:shadow-md transition-all duration-300">
-              <CardContent className="p-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="flex-shrink-0 bg-gray-100 rounded-full w-10 h-10 flex items-center justify-center">
-                      <span className="font-medium text-sm">{player.position}</span>
-                    </div>
-                    <div>
-                      <h4 className="font-medium">{player.name}</h4>
-                      <p className="text-xs text-muted-foreground">{player.position}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs text-muted-foreground">Rating</span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRatingColorClass(player.rating)}`}>
-                      {player.rating.toFixed(1)}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+    <div className={className}>
+      <h3 className="text-lg font-semibold mb-2">
+        {teamName} {showAll ? "Starting XI" : "Key Players"}
+      </h3>
+      <ul className="space-y-1">
+        {displayedPlayers.map((player, index) => (
+          <li key={index} className="flex items-center space-x-2">
+            <div className="w-6 h-6 flex items-center justify-center bg-gray-200 text-gray-800 rounded-full text-xs font-semibold">
+              {player.number}
+            </div>
+            <span className="text-sm font-medium">{player.name}</span>
+            <span className="text-xs text-gray-500">{player.position}</span>
+          </li>
         ))}
-      </motion.div>
-      
+      </ul>
       {!showAll && players.length > 5 && (
-        <p className="text-xs text-muted-foreground text-center">
-          Switch to advanced view to see all {players.length > 11 ? 11 : players.length} players
-        </p>
+        <div className="text-xs text-right italic mt-2 text-gray-500">
+          + {players.length - 5} more players
+        </div>
       )}
     </div>
   );
-};
-
-// Helper to get color class based on rating
-const getRatingColorClass = (rating: number): string => {
-  if (rating >= 9.0) return "bg-green-100 text-green-800";
-  if (rating >= 8.5) return "bg-emerald-100 text-emerald-800";
-  if (rating >= 8.0) return "bg-teal-100 text-teal-800";
-  if (rating >= 7.5) return "bg-blue-100 text-blue-800";
-  return "bg-gray-100 text-gray-800";
 };
 
 export default TeamPlayers;
