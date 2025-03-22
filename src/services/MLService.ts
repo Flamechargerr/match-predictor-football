@@ -185,35 +185,50 @@ class MLService {
   
   // Generate fallback predictions when the ML models fail
   private getFallbackPredictions(homeTeam: Team, awayTeam: Team): MatchPrediction[] {
-    // Simple heuristic: compare goals, shots, and shots on target
-    const homeScore = parseInt(homeTeam.goals) * 3 + parseInt(homeTeam.shotsOnTarget) * 2 + parseInt(homeTeam.shots) - parseInt(homeTeam.redCards) * 2;
-    const awayScore = parseInt(awayTeam.goals) * 3 + parseInt(awayTeam.shotsOnTarget) * 2 + parseInt(awayTeam.shots) - parseInt(awayTeam.redCards) * 2;
+    // Calculate team dominance scores using weighted statistics
+    const homeGoals = parseInt(homeTeam.goals);
+    const awayGoals = parseInt(awayTeam.goals);
+    const homeShots = parseInt(homeTeam.shots);
+    const awayShots = parseInt(awayTeam.shots);
+    const homeShotsOnTarget = parseInt(homeTeam.shotsOnTarget);
+    const awayShotsOnTarget = parseInt(awayTeam.shotsOnTarget);
+    const homeRedCards = parseInt(homeTeam.redCards);
+    const awayRedCards = parseInt(awayTeam.redCards);
+    
+    // Calculate weighted scores (goals count more than shots)
+    const homeScore = homeGoals * 3 + homeShots * 1 + homeShotsOnTarget * 2 - homeRedCards * 2;
+    const awayScore = awayGoals * 3 + awayShots * 1 + awayShotsOnTarget * 2 - awayRedCards * 2;
     const scoreDiff = homeScore - awayScore;
     
-    // Determine a single consistent outcome for all models
-    // Choose home win, away win, or draw based on score difference for consistency
+    // Determine outcome based on score difference
     let primaryOutcome: "Home Win" | "Draw" | "Away Win";
-    if (scoreDiff > 3) primaryOutcome = "Home Win";
-    else if (scoreDiff < -3) primaryOutcome = "Away Win";
-    else primaryOutcome = "Draw";
+    let baseConfidence: number;
+    let probabilities: number[];
     
-    // Slightly vary confidence based on model type
-    const baseConfidence = Math.min(94, 85 + Math.abs(scoreDiff));
+    // Set significant threshold - higher statistical difference means Draw should be less likely
+    if (scoreDiff > 5) {
+      primaryOutcome = "Home Win";
+      baseConfidence = Math.min(95, 85 + Math.min(10, scoreDiff));
+      probabilities = [0.85, 0.10, 0.05];
+    } else if (scoreDiff < -5) {
+      primaryOutcome = "Away Win";
+      baseConfidence = Math.min(95, 85 + Math.min(10, Math.abs(scoreDiff)));
+      probabilities = [0.05, 0.10, 0.85];
+    } else if (scoreDiff > 2) {
+      primaryOutcome = "Home Win";
+      baseConfidence = 75 + Math.min(15, scoreDiff);
+      probabilities = [0.75, 0.20, 0.05];
+    } else if (scoreDiff < -2) {
+      primaryOutcome = "Away Win";
+      baseConfidence = 75 + Math.min(15, Math.abs(scoreDiff));
+      probabilities = [0.05, 0.20, 0.75];
+    } else {
+      primaryOutcome = "Draw";
+      baseConfidence = 70 + Math.min(10, 5 - Math.abs(scoreDiff));
+      probabilities = [0.25, 0.50, 0.25];
+    }
     
-    // Generate probabilities that favor the primary outcome
-    const generateProbs = () => {
-      let probs: number[];
-      if (primaryOutcome === "Home Win") {
-        probs = [0.75, 0.15, 0.1];
-      } else if (primaryOutcome === "Draw") {
-        probs = [0.2, 0.6, 0.2];
-      } else {
-        probs = [0.1, 0.15, 0.75];
-      }
-      return probs;
-    };
-    
-    console.log("Using fallback predictions with outcome:", primaryOutcome);
+    console.log(`Fallback prediction: ${primaryOutcome} (home: ${homeScore}, away: ${awayScore}, diff: ${scoreDiff})`);
     
     // All models agree on the outcome, but with small variations in confidence
     return [
@@ -222,21 +237,21 @@ class MLService {
         outcome: primaryOutcome,
         confidence: baseConfidence - 2,
         modelAccuracy: 82 + (this.trainingIterations * 0.1),
-        probabilities: generateProbs()
+        probabilities: probabilities
       },
       {
         modelName: "Random Forest",
         outcome: primaryOutcome,
         confidence: baseConfidence,
         modelAccuracy: 89 + (this.trainingIterations * 0.08),
-        probabilities: generateProbs()
+        probabilities: probabilities
       },
       {
         modelName: "Logistic Regression",
         outcome: primaryOutcome,
         confidence: baseConfidence + 2,
         modelAccuracy: 87 + (this.trainingIterations * 0.09),
-        probabilities: generateProbs()
+        probabilities: probabilities
       }
     ];
   }

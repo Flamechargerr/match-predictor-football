@@ -70,11 +70,31 @@ class FootballPredictor:
         from .prediction import get_model_predictions
         
         if not self.is_trained:
-            # Default predictions if not trained (starting at ~80% reliability)
+            # Make predictions based on statistical dominance for untrained models
+            home_goals, away_goals = features[0][0], features[0][1]
+            home_shots, away_shots = features[0][2], features[0][3]
+            home_on_target, away_on_target = features[0][4], features[0][5]
+            
+            # Calculate team dominance score
+            home_score = home_goals * 3 + home_shots * 1 + home_on_target * 2
+            away_score = away_goals * 3 + away_shots * 1 + away_on_target * 2
+            
+            # Determine outcome based on dominance
+            if home_score > away_score + 3:
+                outcome = "Home Win"
+                probs = [0.82, 0.13, 0.05]
+            elif away_score > home_score + 3:
+                outcome = "Away Win"
+                probs = [0.05, 0.13, 0.82]
+            else:
+                outcome = "Draw"
+                probs = [0.15, 0.70, 0.15]
+            
+            # Return consistent predictions for all models
             return [
-                {"modelName": "Naive Bayes", "outcome": "Home Win", "confidence": 82.0, "probabilities": [0.82, 0.13, 0.05]},
-                {"modelName": "Random Forest", "outcome": "Home Win", "confidence": 85.0, "probabilities": [0.85, 0.10, 0.05]}, 
-                {"modelName": "Logistic Regression", "outcome": "Home Win", "confidence": 83.0, "probabilities": [0.83, 0.12, 0.05]}
+                {"modelName": "Naive Bayes", "outcome": outcome, "confidence": 82.0, "probabilities": probs},
+                {"modelName": "Random Forest", "outcome": outcome, "confidence": 85.0, "probabilities": probs}, 
+                {"modelName": "Logistic Regression", "outcome": outcome, "confidence": 83.0, "probabilities": probs}
             ]
         
         # Ensure features is a numpy array
