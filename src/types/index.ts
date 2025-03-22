@@ -12,6 +12,7 @@ export type MatchPrediction = {
   confidence: number;
   modelName: string;
   modelAccuracy: number;
+  probabilities?: number[]; // Add this property to support probability distributions
 };
 
 export type ModelPerformance = {
