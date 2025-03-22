@@ -64,9 +64,9 @@ const PredictionCard: React.FC<PredictionCardProps> = ({
   const colors = getPredictionColor();
   const confidenceIndicator = getConfidenceIndicator();
   
-  // Calculate model reliability with higher base values (around 80%)
+  // Calculate model reliability with higher base values (around 85%)
   const baseReliability = Math.min(95, accuracy * 0.9); // Weighted to accuracy with higher base
-  const confidenceBoost = (confidence / 100) * 15; // Weighted to confidence
+  const confidenceBoost = (confidence / 100) * 10; // Slightly lower confidence weight for more consistency
   const modelReliability = Math.min(96, baseReliability + confidenceBoost).toFixed(1);
 
   return (

@@ -1,4 +1,3 @@
-
 import { MatchPrediction, Team, ModelPerformance } from '@/types';
 import { footballMatchData } from '@/data/footballMatchData';
 import { pyodideService } from './PyodideService';
@@ -206,52 +205,50 @@ class MLService {
     const awayScore = parseInt(awayTeam.goals) * 3 + parseInt(awayTeam.shotsOnTarget) * 2 + parseInt(awayTeam.shots) - parseInt(awayTeam.redCards) * 2;
     const scoreDiff = homeScore - awayScore;
     
-    let outcome: "Home Win" | "Draw" | "Away Win";
-    if (scoreDiff > 5) outcome = "Home Win";
-    else if (scoreDiff < -5) outcome = "Away Win";
-    else outcome = "Draw";
+    // Determine a single consistent outcome for all models
+    let primaryOutcome: "Home Win" | "Draw" | "Away Win";
+    if (scoreDiff > 5) primaryOutcome = "Home Win";
+    else if (scoreDiff < -5) primaryOutcome = "Away Win";
+    else primaryOutcome = "Draw";
     
-    // Generate confidence based on score difference (increased for higher reliability)
-    const confidence = Math.min(95, 70 + Math.abs(scoreDiff) * 1.5);
+    // Slightly vary confidence based on model type
+    const baseConfidence = Math.min(94, 85 + Math.abs(scoreDiff));
     
-    // Create artificial probabilities
-    const generateProbs = (predictedOutcome: string) => {
-      let baseProbs: number[];
-      if (predictedOutcome === "Home Win") {
-        baseProbs = [0.8, 0.15, 0.05];
-      } else if (predictedOutcome === "Draw") {
-        baseProbs = [0.2, 0.6, 0.2];
+    // Generate probabilities that favor the primary outcome
+    const generateProbs = () => {
+      let probs: number[];
+      if (primaryOutcome === "Home Win") {
+        probs = [0.75, 0.15, 0.1];
+      } else if (primaryOutcome === "Draw") {
+        probs = [0.2, 0.6, 0.2];
       } else {
-        baseProbs = [0.05, 0.15, 0.8];
+        probs = [0.1, 0.15, 0.75];
       }
-      return baseProbs;
+      return probs;
     };
     
-    // Boost model reliability based on training iterations
-    const baseReliability = 80 + (this.trainingIterations * 0.2);
-    const maxReliability = 95;
-    
+    // All models mostly agree, with small variations in confidence
     return [
       {
         modelName: "Naive Bayes",
-        outcome,
-        confidence,
+        outcome: primaryOutcome,
+        confidence: baseConfidence - 2,
         modelAccuracy: 82 + (this.trainingIterations * 0.1),
-        probabilities: generateProbs(outcome)
+        probabilities: generateProbs()
       },
       {
         modelName: "Random Forest",
-        outcome,
-        confidence: confidence - 5, // Slight variation
+        outcome: primaryOutcome,
+        confidence: baseConfidence + 2, 
         modelAccuracy: 89 + (this.trainingIterations * 0.08),
-        probabilities: generateProbs(outcome)
+        probabilities: generateProbs()
       },
       {
         modelName: "Logistic Regression",
-        outcome,
-        confidence: confidence + 5, // Slight variation
+        outcome: primaryOutcome,
+        confidence: baseConfidence,
         modelAccuracy: 87 + (this.trainingIterations * 0.09),
-        probabilities: generateProbs(outcome)
+        probabilities: generateProbs()
       }
     ];
   }
