@@ -33,7 +33,7 @@ const TeamPlayers: React.FC<TeamPlayersProps> = ({
         {displayedPlayers.map((player, index) => (
           <li key={index} className="flex items-center space-x-2">
             <div className="w-6 h-6 flex items-center justify-center bg-gray-200 text-gray-800 rounded-full text-xs font-semibold">
-              {player.number}
+              {index + 1}
             </div>
             <span className="text-sm font-medium">{player.name}</span>
             <span className="text-xs text-gray-500">{player.position}</span>
