@@ -9,7 +9,7 @@ interface TeamPlayersProps {
   teamName: string;
   players: Player[];
   className?: string;
-  showAll?: boolean; // New prop to toggle showing all players
+  showAll?: boolean; // Prop to toggle showing all players
 }
 
 const TeamPlayers: React.FC<TeamPlayersProps> = ({ 
@@ -26,8 +26,8 @@ const TeamPlayers: React.FC<TeamPlayersProps> = ({
     );
   }
 
-  // Get all players or just the first 5 based on the showAll prop
-  const displayPlayers = showAll ? players : players.slice(0, 5);
+  // Get all 11 players in advanced view or just the first 5 in simple view
+  const displayPlayers = showAll ? players.slice(0, 11) : players.slice(0, 5);
 
   const container = {
     hidden: { opacity: 0 },
@@ -83,7 +83,7 @@ const TeamPlayers: React.FC<TeamPlayersProps> = ({
       
       {!showAll && players.length > 5 && (
         <p className="text-xs text-muted-foreground text-center">
-          Switch to advanced view to see all {players.length} players
+          Switch to advanced view to see all {players.length > 11 ? 11 : players.length} players
         </p>
       )}
     </div>
