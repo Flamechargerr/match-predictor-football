@@ -23,10 +23,10 @@ const ModelPerformanceChart: React.FC<ModelPerformanceChartProps> = ({ models, c
     F1Score: model.f1Score ? Number((model.f1Score * 100).toFixed(1)) : undefined,
   }));
 
-  // Custom colors for bars
-  const accuracyColor = "rgba(99, 102, 241, 0.8)";
-  const precisionColor = "rgba(52, 211, 153, 0.8)";
-  const f1ScoreColor = "rgba(236, 72, 153, 0.8)";
+  // Custom colors for bars with gradients
+  const accuracyColors = ["rgba(99, 102, 241, 0.8)", "rgba(79, 70, 229, 0.8)"];
+  const precisionColors = ["rgba(16, 185, 129, 0.8)", "rgba(5, 150, 105, 0.8)"];
+  const f1ScoreColors = ["rgba(236, 72, 153, 0.8)", "rgba(219, 39, 119, 0.8)"];
 
   return (
     <div className={`w-full h-full ${className}`}>
@@ -42,6 +42,20 @@ const ModelPerformanceChart: React.FC<ModelPerformanceChartProps> = ({ models, c
           barSize={24}
           barGap={8}
         >
+          <defs>
+            <linearGradient id="accuracyGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#4F46E5" stopColor="#6366F1" />
+              <stop offset="100%" stopColor="#818CF8" />
+            </linearGradient>
+            <linearGradient id="precisionGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#10B981" />
+              <stop offset="100%" stopColor="#34D399" />
+            </linearGradient>
+            <linearGradient id="f1ScoreGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#EC4899" />
+              <stop offset="100%" stopColor="#F472B6" />
+            </linearGradient>
+          </defs>
           <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
           <XAxis 
             dataKey="name" 
@@ -70,6 +84,7 @@ const ModelPerformanceChart: React.FC<ModelPerformanceChartProps> = ({ models, c
             }}
             formatter={(value: number) => [`${value.toFixed(1)}%`, undefined]}
             labelStyle={{ fontWeight: 600, color: "#111827", marginBottom: "4px" }}
+            cursor={{ fill: 'rgba(0,0,0,0.05)' }}
           />
           <Legend 
             wrapperStyle={{ paddingTop: "12px", fontSize: "12px", fontFamily: "'Inter', sans-serif" }}
@@ -78,14 +93,14 @@ const ModelPerformanceChart: React.FC<ModelPerformanceChartProps> = ({ models, c
           />
           <Bar 
             dataKey="Accuracy" 
-            fill={accuracyColor} 
+            fill="url(#accuracyGradient)" 
             radius={[4, 4, 0, 0]} 
             animationDuration={1500}
             name="Accuracy"
           />
           <Bar 
             dataKey="Precision" 
-            fill={precisionColor} 
+            fill="url(#precisionGradient)" 
             radius={[4, 4, 0, 0]} 
             animationDuration={1500}
             animationBegin={300}
@@ -94,7 +109,7 @@ const ModelPerformanceChart: React.FC<ModelPerformanceChartProps> = ({ models, c
           {chartData[0].F1Score !== undefined && (
             <Bar 
               dataKey="F1Score" 
-              fill={f1ScoreColor} 
+              fill="url(#f1ScoreGradient)" 
               radius={[4, 4, 0, 0]} 
               animationDuration={1500}
               animationBegin={600}

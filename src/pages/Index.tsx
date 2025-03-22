@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
@@ -11,12 +12,61 @@ import StatisticsIcon from "@/components/StatisticsIcon";
 import ChartIcon from "@/components/ChartIcon";
 import PredictIcon from "@/components/PredictIcon";
 import TrophyIcon from "@/components/TrophyIcon";
+import TeamFormation from "@/components/TeamFormation";
 import { teams } from "@/data/teams";
 import { getTeamPlayers } from "@/data/players";
 import { modelPerformanceData } from "@/data/models";
 import { type Team, type MatchPrediction, type Player } from "@/types";
 import { Separator } from "@/components/ui/separator";
 import { mlService } from "@/services/MLService";
+
+// Team FIFA rankings (sample data)
+const teamRankings: Record<string, number> = {
+  "Manchester City": 3,
+  "Liverpool": 5,
+  "Chelsea": 8,
+  "Arsenal": 10,
+  "Manchester United": 12,
+  "Tottenham": 14,
+  "Newcastle": 23,
+  "West Ham": 29,
+  "Leicester": 35,
+  "Everton": 42,
+  "Aston Villa": 27,
+  "Crystal Palace": 45,
+  "Brighton": 31,
+  "Wolves": 47,
+  "Brentford": 52,
+  "Southampton": 58,
+  "Leeds": 62,
+  "Burnley": 73,
+  "Watford": 88,
+  "Norwich": 95,
+};
+
+// Team formations (sample data)
+const teamFormations: Record<string, string> = {
+  "Manchester City": "4-3-3",
+  "Liverpool": "4-3-3",
+  "Chelsea": "4-2-3-1",
+  "Arsenal": "4-3-3",
+  "Manchester United": "4-2-3-1",
+  "Tottenham": "4-2-3-1",
+  "Newcastle": "4-3-3",
+  "West Ham": "4-2-3-1",
+  "Leicester": "4-4-2",
+  "Everton": "4-3-3",
+  "Aston Villa": "4-3-3",
+  "Crystal Palace": "4-3-3",
+  "Brighton": "4-2-3-1",
+  "Wolves": "4-2-3-1",
+  "Brentford": "4-3-3",
+  "Southampton": "4-4-2",
+  "Leeds": "4-3-3",
+  "Burnley": "4-4-2",
+  "Watford": "4-3-3",
+  "Norwich": "4-4-2",
+};
 
 const Index = () => {
   // State for home team data
@@ -49,6 +99,9 @@ const Index = () => {
   
   // State to control visibility of results section
   const [showResults, setShowResults] = useState(false);
+  
+  // State to toggle between simple and advanced view
+  const [showAdvancedView, setShowAdvancedView] = useState(false);
 
   // Update players when team changes
   useEffect(() => {
@@ -127,20 +180,29 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-background/80">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50">
       {/* Header */}
-      <header className="bg-white border-b border-border shadow-sm py-4">
+      <header className="bg-gradient-to-r from-blue-600 to-indigo-700 shadow-md py-4">
         <div className="container max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <FootballIcon className="w-10 h-10 text-primary" />
+              <div className="p-2 bg-white/20 rounded-full">
+                <FootballIcon className="w-10 h-10 text-white" />
+              </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Football Match Predictor</h1>
-                <p className="text-sm text-muted-foreground">
+                <h1 className="text-2xl font-bold text-white">Football Match Predictor</h1>
+                <p className="text-sm text-blue-100">
                   Enter match statistics to predict the final result with ML
                 </p>
               </div>
             </div>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowAdvancedView(!showAdvancedView)}
+              className="bg-white/10 text-white border-white/30 hover:bg-white/20"
+            >
+              {showAdvancedView ? "Simple View" : "Advanced View"}
+            </Button>
           </div>
         </div>
       </header>
@@ -184,21 +246,43 @@ const Index = () => {
             />
           </div>
 
-          {/* Display Team Players if teams are selected */}
-          {(homeTeam.name || awayTeam.name) && (
+          {/* Team Formations */}
+          {showAdvancedView && (homeTeam.name || awayTeam.name) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-6">
+              {homeTeam.name && (
+                <TeamFormation 
+                  teamName={homeTeam.name} 
+                  players={homePlayers}
+                  formation={teamFormations[homeTeam.name] || "4-3-3"}
+                  fifaRanking={teamRankings[homeTeam.name]}
+                />
+              )}
+              {awayTeam.name && (
+                <TeamFormation 
+                  teamName={awayTeam.name} 
+                  players={awayPlayers}
+                  formation={teamFormations[awayTeam.name] || "4-3-3"}
+                  fifaRanking={teamRankings[awayTeam.name]}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Display Team Players if teams are selected and not in advanced view */}
+          {!showAdvancedView && (homeTeam.name || awayTeam.name) && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-6">
               {homeTeam.name && (
                 <TeamPlayers 
                   teamName={homeTeam.name} 
                   players={homePlayers}
-                  className="bg-blue-50/50 p-4 rounded-lg border border-blue-100"
+                  className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-100"
                 />
               )}
               {awayTeam.name && (
                 <TeamPlayers 
                   teamName={awayTeam.name} 
                   players={awayPlayers}
-                  className="bg-red-50/50 p-4 rounded-lg border border-red-100"
+                  className="bg-gradient-to-br from-red-50 to-pink-50 p-4 rounded-lg border border-red-100"
                 />
               )}
             </div>
@@ -209,7 +293,7 @@ const Index = () => {
             size="lg" 
             onClick={handlePredict} 
             disabled={isLoading || !isFormValid()}
-            className="w-full py-6 text-lg font-medium relative overflow-hidden group bg-gradient-to-r from-home-DEFAULT to-away-DEFAULT hover:from-home-dark hover:to-away-dark transition-all duration-300 animate-fade-in"
+            className="w-full py-6 text-lg font-medium relative overflow-hidden group bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 animate-fade-in rounded-xl shadow-lg"
           >
             {isLoading ? (
               <div className="loading-dots flex space-x-2 items-center justify-center">
@@ -230,7 +314,9 @@ const Index = () => {
         {showResults && (
           <section id="results" className="animate-fade-up pt-6">
             <div className="flex items-center mb-6 space-x-3">
-              <TrophyIcon className="w-6 h-6 text-primary" />
+              <div className="p-2 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full">
+                <TrophyIcon className="w-6 h-6 text-white" />
+              </div>
               <h2 className="text-2xl font-bold text-gray-900">Match Analysis & Predictions</h2>
             </div>
 
@@ -248,7 +334,7 @@ const Index = () => {
                       prediction={prediction.outcome}
                       confidence={prediction.confidence}
                       accuracy={prediction.modelAccuracy}
-                      className="animate-scale-in"
+                      className="animate-scale-in shadow-xl"
                       />
                   ))}
                 </div>
@@ -257,10 +343,12 @@ const Index = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Match Statistics */}
-              <div className="bg-white rounded-xl border border-border p-6 shadow-prediction animate-slide-right">
+              <div className="bg-gradient-to-br from-white to-blue-50 rounded-xl border border-blue-100 p-6 shadow-prediction animate-slide-right">
                 <div className="flex items-center mb-4 space-x-2">
-                  <StatisticsIcon className="w-5 h-5 text-gray-700" />
-                  <h3 className="text-xl font-semibold text-gray-800">Match Statistics</h3>
+                  <div className="p-1.5 bg-blue-100 rounded-full">
+                    <StatisticsIcon className="w-5 h-5 text-blue-700" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-blue-900">Match Statistics</h3>
                 </div>
                 {homeTeam.name && awayTeam.name && (
                   <StatsRadarChart
@@ -285,10 +373,12 @@ const Index = () => {
               </div>
 
               {/* Model Performance */}
-              <div className="bg-white rounded-xl border border-border p-6 shadow-prediction animate-slide-left">
+              <div className="bg-gradient-to-br from-white to-purple-50 rounded-xl border border-purple-100 p-6 shadow-prediction animate-slide-left">
                 <div className="flex items-center mb-4 space-x-2">
-                  <ChartIcon className="w-5 h-5 text-gray-700" />
-                  <h3 className="text-xl font-semibold text-gray-800">Model Performance</h3>
+                  <div className="p-1.5 bg-purple-100 rounded-full">
+                    <ChartIcon className="w-5 h-5 text-purple-700" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-purple-900">Model Performance</h3>
                 </div>
                 <div className="h-[300px]">
                   <ModelPerformanceChart models={modelPerformanceData} />
@@ -300,13 +390,16 @@ const Index = () => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-border py-6 mt-12">
+      <footer className="bg-gradient-to-r from-gray-800 to-gray-900 text-white border-t border-gray-700 py-6 mt-12">
         <div className="container max-w-7xl mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-muted-foreground text-sm">
-              Football Match Predictor — Powered by Machine Learning
-            </p>
-            <p className="text-muted-foreground text-sm mt-2 md:mt-0">
+            <div className="flex items-center">
+              <FootballIcon className="w-6 h-6 text-blue-400 mr-2" />
+              <p className="text-gray-300 text-sm">
+                Football Match Predictor — Powered by Machine Learning
+              </p>
+            </div>
+            <p className="text-gray-400 text-sm mt-2 md:mt-0">
               © {new Date().getFullYear()} Football Match Predictor Genie
             </p>
           </div>

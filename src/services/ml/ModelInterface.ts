@@ -1,3 +1,4 @@
+
 import { MatchPrediction } from '@/types';
 
 // Base model interface for all ML models
@@ -78,4 +79,31 @@ export function addNoise(inputData: number[], noiseLevel: number = 0.05): number
     const noise = val * (Math.random() * noiseLevel);
     return Math.max(0, val + (Math.random() > 0.5 ? noise : -noise));
   });
+}
+
+// Function to determine match outcome
+export function determineOutcome(homeGoals: number, awayGoals: number): number {
+  if (homeGoals > awayGoals) return 0; // Home win
+  if (homeGoals < awayGoals) return 2; // Away win
+  return 1; // Draw
+}
+
+// Function to convert prediction index to match outcome
+export function predictionToOutcome(predictionIndex: number): "Home Win" | "Draw" | "Away Win" {
+  switch (predictionIndex) {
+    case 0: return "Home Win";
+    case 1: return "Draw";
+    case 2: return "Away Win";
+    default: return "Draw";
+  }
+}
+
+// Function to get color for outcome
+export function getOutcomeColor(outcome: "Home Win" | "Draw" | "Away Win"): string {
+  switch (outcome) {
+    case "Home Win": return "bg-blue-500";
+    case "Draw": return "bg-purple-500";
+    case "Away Win": return "bg-red-500";
+    default: return "bg-gray-500";
+  }
 }
