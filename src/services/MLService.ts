@@ -1,3 +1,4 @@
+
 import { MatchPrediction, Team, ModelPerformance } from '@/types';
 import { footballMatchData } from '@/data/footballMatchData';
 import { pyodideService } from './PyodideService';
@@ -158,6 +159,7 @@ class MLService {
       const predictions = await pyodideService.predictMatch(inputData);
       
       if (predictions && predictions.length > 0) {
+        console.log("Using real ML model predictions");
         // Make sure all models predict the same outcome for consistent UX
         // Find the most confident prediction
         const sortedPreds = [...predictions].sort((a, b) => b.confidence - a.confidence);
@@ -167,7 +169,7 @@ class MLService {
         return predictions.map(pred => ({
           ...pred,
           outcome: mostConfidentOutcome, // All models predict the same outcome
-          confidence: Math.min(97, pred.confidence * 1.1)
+          confidence: Math.min(97, pred.confidence * 1.1) // Slightly boost confidence for UX
         }));
       } else {
         console.log("No predictions returned, using fallback");
@@ -175,8 +177,6 @@ class MLService {
       }
     } catch (error) {
       console.error("Error predicting match:", error);
-      
-      // No toast notification for fallback predictions
       
       // Fallback predictions
       return this.getFallbackPredictions(homeTeam, awayTeam);
@@ -191,11 +191,10 @@ class MLService {
     const scoreDiff = homeScore - awayScore;
     
     // Determine a single consistent outcome for all models
-    // Choose randomly between Home Win, Away Win, and Draw for variety
-    // This will now be based on score difference to make it more deterministic
+    // Choose home win, away win, or draw based on score difference for consistency
     let primaryOutcome: "Home Win" | "Draw" | "Away Win";
-    if (scoreDiff > 0) primaryOutcome = "Home Win";
-    else if (scoreDiff < 0) primaryOutcome = "Away Win";
+    if (scoreDiff > 3) primaryOutcome = "Home Win";
+    else if (scoreDiff < -3) primaryOutcome = "Away Win";
     else primaryOutcome = "Draw";
     
     // Slightly vary confidence based on model type
@@ -214,7 +213,9 @@ class MLService {
       return probs;
     };
     
-    // All models agree completely on the outcome, with small variations in confidence only
+    console.log("Using fallback predictions with outcome:", primaryOutcome);
+    
+    // All models agree on the outcome, but with small variations in confidence
     return [
       {
         modelName: "Naive Bayes",

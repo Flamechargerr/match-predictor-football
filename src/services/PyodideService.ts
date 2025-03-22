@@ -1,3 +1,4 @@
+
 import { MatchPrediction, ModelPerformance } from '@/types';
 import { toast } from "@/components/ui/use-toast";
 import footballModelsPy from '../python/football_models.py?raw';
@@ -50,6 +51,20 @@ class PyodideService {
         indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.23.4/full/',
       });
 
+      // Create a Python package structure in the virtual filesystem
+      await this.pyodide.runPythonAsync(`
+        import sys
+        import os
+        
+        # Create necessary directories for the package structure
+        os.makedirs('python/models', exist_ok=True)
+        os.makedirs('python/visualization', exist_ok=True)
+        
+        # Add the parent directory to sys.path so Python can find our modules
+        if '' not in sys.path:
+            sys.path.insert(0, '')
+      `);
+
       // Install scikit-learn package
       console.log('Installing scikit-learn...');
       try {
@@ -59,9 +74,15 @@ class PyodideService {
         throw new Error('Failed to load required Python packages');
       }
 
+      // Load all Python modules into the filesystem
+      await this.loadPythonModules();
+
       // Run the Python code
       try {
-        await this.pyodide.runPythonAsync(this.pythonCode);
+        await this.pyodide.runPythonAsync(`
+          import python.football_models
+          print("Successfully imported football_models")
+        `);
         console.log('Python code executed successfully');
       } catch (codeError) {
         console.error('Error executing Python code:', codeError);
@@ -82,11 +103,47 @@ class PyodideService {
         { name: "Logistic Regression", accuracy: 0.87, precision: 0.89 }
       ];
       
-      toast({
-        title: "Using Fallback Mode",
-        description: "Using local predictions instead of Python ML models.",
-        variant: "default",
-      });
+      // Don't show a toast notification for fallback - user requested removal
+    }
+  }
+
+  // New method to load all Python modules into the filesystem
+  private async loadPythonModules(): Promise<void> {
+    // Import all Python module files
+    const pythonModules = {
+      'python/football_models.py': footballModelsPy,
+      // We'll dynamically import and add other Python files here
+    };
+
+    // Dynamically import and add other Python files
+    try {
+      const basePredictor = await import('../python/models/base_predictor.py?raw');
+      const prediction = await import('../python/models/prediction.py?raw');
+      const trainUtils = await import('../python/models/train_utils.py?raw');
+      const featureEngineering = await import('../python/feature_engineering.py?raw');
+      const modelEvaluation = await import('../python/model_evaluation.py?raw');
+      
+      // Add the imports to our modules object
+      pythonModules['python/models/base_predictor.py'] = basePredictor.default;
+      pythonModules['python/models/prediction.py'] = prediction.default;
+      pythonModules['python/models/train_utils.py'] = trainUtils.default;
+      pythonModules['python/feature_engineering.py'] = featureEngineering.default;
+      pythonModules['python/model_evaluation.py'] = modelEvaluation.default;
+      
+      // Create __init__.py files
+      pythonModules['python/__init__.py'] = '# Python package';
+      pythonModules['python/models/__init__.py'] = '# Models package';
+      
+      console.log('All Python modules loaded');
+    } catch (error) {
+      console.error('Error loading Python modules:', error);
+      throw new Error('Failed to load Python modules');
+    }
+
+    // Write all modules to the filesystem
+    for (const [path, content] of Object.entries(pythonModules)) {
+      await this.pyodide.FS.writeFile(path, content);
+      console.log(`Written ${path} to filesystem`);
     }
   }
 
@@ -108,6 +165,7 @@ class PyodideService {
       const result = await this.pyodide.runPythonAsync(`
         import json
         try:
+            from python.football_models import train_models
             results = train_models(football_data)
             json.dumps(results)
         except Exception as e:
@@ -170,6 +228,7 @@ class PyodideService {
       const result = await this.pyodide.runPythonAsync(`
         import json
         try:
+            from python.football_models import predict_match
             predictions = predict_match(match_data)
             json.dumps(predictions)
         except Exception as e:

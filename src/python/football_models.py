@@ -6,10 +6,11 @@ This file contains the Python ML models for football match prediction.
 These models are used via Pyodide in the browser.
 """
 
-# Import the prediction and training functions directly
-from models.base_predictor import predictor
-from models.prediction import predict_match
-from models.train_utils import train_and_evaluate_models
+# Import the prediction and training functions from relative paths
+# The issue was that Python couldn't find the 'models' module
+from .models.base_predictor import predictor
+from .models.prediction import predict_match
+from .models.train_utils import train_and_evaluate_models
 
 # Export the main functions that will be called from JavaScript
 __all__ = ['train_models', 'predict_match']
