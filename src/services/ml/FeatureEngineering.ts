@@ -1,4 +1,3 @@
-
 /**
  * Feature engineering utilities for the ML service.
  * These can be incorporated into the ML service to improve model performance.
@@ -29,6 +28,15 @@ export function engineerFeatures(features: number[]): number[] {
   const awayScoringEfficiency = awayShotsOnTarget > 0 ? awayGoals / awayShotsOnTarget : 0;
   const scoringEfficiencyDifference = homeScoringEfficiency - awayScoringEfficiency;
   
+  // Home advantage indicator (1 for home, 0 for away)
+  // This is always 1 since we're analyzing from home team perspective
+  const homeAdvantage = 1;
+  
+  // Goal rate (goals per shot)
+  const homeGoalRate = homeShots > 0 ? homeGoals / homeShots : 0;
+  const awayGoalRate = awayShots > 0 ? awayGoals / awayShots : 0;
+  const goalRateDifference = homeGoalRate - awayGoalRate;
+  
   // Return original features plus derived features
   return [
     ...features,
@@ -41,7 +49,11 @@ export function engineerFeatures(features: number[]): number[] {
     shotEfficiencyDifference,
     homeScoringEfficiency,
     awayScoringEfficiency,
-    scoringEfficiencyDifference
+    scoringEfficiencyDifference,
+    homeAdvantage,
+    homeGoalRate,
+    awayGoalRate,
+    goalRateDifference
   ];
 }
 
@@ -79,4 +91,34 @@ export function calculateNormalizationParams(data: number[][]): { means: number[
   }
   
   return { means, stds };
+}
+
+// Create synthetic data augmentations (useful for small datasets)
+export function augmentData(data: number[][]): number[][] {
+  const augmentedData: number[][] = [...data]; // Start with original data
+  
+  for (const sample of data) {
+    // Add slight variations of the same data point
+    for (let i = 0; i < 2; i++) { // Create 2 variations per sample
+      const newSample = [...sample];
+      
+      // Add small random noise to numerical features (first 8 features)
+      for (let j = 0; j < 8; j++) {
+        if (j === 6 || j === 7) {
+          // For red cards (integers 0-2), just keep as is or add 1 with low probability
+          newSample[j] = Math.random() < 0.1 ? 
+            Math.min(2, newSample[j] + 1) : newSample[j];
+        } else {
+          // Add noise between -10% and +10% for other features
+          const noise = (Math.random() - 0.5) * 0.2;
+          newSample[j] = Math.max(0, newSample[j] * (1 + noise));
+        }
+      }
+      
+      // Keep the label (last column) the same
+      augmentedData.push(newSample);
+    }
+  }
+  
+  return augmentedData;
 }

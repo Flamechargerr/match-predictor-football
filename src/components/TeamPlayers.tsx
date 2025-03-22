@@ -9,9 +9,15 @@ interface TeamPlayersProps {
   teamName: string;
   players: Player[];
   className?: string;
+  showAll?: boolean; // New prop to toggle showing all players
 }
 
-const TeamPlayers: React.FC<TeamPlayersProps> = ({ teamName, players, className = "" }) => {
+const TeamPlayers: React.FC<TeamPlayersProps> = ({ 
+  teamName, 
+  players, 
+  className = "",
+  showAll = false 
+}) => {
   if (!players || players.length === 0) {
     return (
       <div className={`text-center p-4 ${className}`}>
@@ -19,6 +25,9 @@ const TeamPlayers: React.FC<TeamPlayersProps> = ({ teamName, players, className 
       </div>
     );
   }
+
+  // Get all players or just the first 5 based on the showAll prop
+  const displayPlayers = showAll ? players : players.slice(0, 5);
 
   const container = {
     hidden: { opacity: 0 },
@@ -37,7 +46,7 @@ const TeamPlayers: React.FC<TeamPlayersProps> = ({ teamName, players, className 
 
   return (
     <div className={`space-y-3 ${className}`}>
-      <h3 className="text-lg font-semibold">{teamName} Players</h3>
+      <h3 className="text-lg font-semibold">{teamName} Players {!showAll && players.length > 5 ? `(Top 5 of ${players.length})` : ''}</h3>
       
       <motion.div 
         className="grid grid-cols-1 gap-2"
@@ -45,7 +54,7 @@ const TeamPlayers: React.FC<TeamPlayersProps> = ({ teamName, players, className 
         initial="hidden"
         animate="show"
       >
-        {players.map((player) => (
+        {displayPlayers.map((player) => (
           <motion.div key={player.id} variants={item}>
             <Card className="overflow-hidden hover:shadow-md transition-all duration-300">
               <CardContent className="p-3">
@@ -71,6 +80,12 @@ const TeamPlayers: React.FC<TeamPlayersProps> = ({ teamName, players, className 
           </motion.div>
         ))}
       </motion.div>
+      
+      {!showAll && players.length > 5 && (
+        <p className="text-xs text-muted-foreground text-center">
+          Switch to advanced view to see all {players.length} players
+        </p>
+      )}
     </div>
   );
 };

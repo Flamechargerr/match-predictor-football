@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
@@ -20,7 +19,6 @@ import { type Team, type MatchPrediction, type Player } from "@/types";
 import { Separator } from "@/components/ui/separator";
 import { mlService } from "@/services/MLService";
 
-// Team FIFA rankings (sample data)
 const teamRankings: Record<string, number> = {
   "Manchester City": 3,
   "Liverpool": 5,
@@ -44,7 +42,6 @@ const teamRankings: Record<string, number> = {
   "Norwich": 95,
 };
 
-// Team formations (sample data)
 const teamFormations: Record<string, string> = {
   "Manchester City": "4-3-3",
   "Liverpool": "4-3-3",
@@ -69,7 +66,6 @@ const teamFormations: Record<string, string> = {
 };
 
 const Index = () => {
-  // State for home team data
   const [homeTeam, setHomeTeam] = useState<Team>({
     name: "",
     goals: "",
@@ -78,7 +74,6 @@ const Index = () => {
     redCards: "",
   });
 
-  // State for away team data
   const [awayTeam, setAwayTeam] = useState<Team>({
     name: "",
     goals: "",
@@ -87,23 +82,16 @@ const Index = () => {
     redCards: "",
   });
 
-  // State for team players
   const [homePlayers, setHomePlayers] = useState<Player[]>([]);
   const [awayPlayers, setAwayPlayers] = useState<Player[]>([]);
 
-  // State for predictions
   const [predictions, setPredictions] = useState<MatchPrediction[]>([]);
-  
-  // State for loading
   const [isLoading, setIsLoading] = useState(false);
-  
-  // State to control visibility of results section
   const [showResults, setShowResults] = useState(false);
-  
-  // State to toggle between simple and advanced view
   const [showAdvancedView, setShowAdvancedView] = useState(false);
+  const [trainingIteration, setTrainingIteration] = useState(0);
+  const [trainingProgress, setTrainingProgress] = useState(0);
 
-  // Update players when team changes
   useEffect(() => {
     if (homeTeam.name) {
       setHomePlayers(getTeamPlayers(homeTeam.name));
@@ -116,7 +104,16 @@ const Index = () => {
     }
   }, [awayTeam.name]);
 
-  // Check if form is valid
+  useEffect(() => {
+    const trainingInterval = setInterval(() => {
+      setTrainingIteration(prev => prev + 1);
+      setTrainingProgress(prev => (prev + 5) % 100);
+      mlService.improveModels();
+    }, 30000);
+
+    return () => clearInterval(trainingInterval);
+  }, []);
+
   const isFormValid = () => {
     return (
       homeTeam.name &&
@@ -132,7 +129,6 @@ const Index = () => {
     );
   };
 
-  // Handle prediction
   const handlePredict = async () => {
     if (!isFormValid()) {
       toast({
@@ -155,12 +151,10 @@ const Index = () => {
     setIsLoading(true);
     
     try {
-      // Use MLService to get predictions
       const mlPredictions = await mlService.predictMatch(homeTeam, awayTeam);
       setPredictions(mlPredictions);
       setShowResults(true);
       
-      // Scroll to results
       setTimeout(() => {
         document.getElementById("results")?.scrollIntoView({ 
           behavior: "smooth", 
@@ -181,7 +175,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50">
-      {/* Header */}
       <header className="bg-gradient-to-r from-blue-600 to-indigo-700 shadow-md py-4">
         <div className="container max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between">
@@ -196,22 +189,28 @@ const Index = () => {
                 </p>
               </div>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={() => setShowAdvancedView(!showAdvancedView)}
-              className="bg-white/10 text-white border-white/30 hover:bg-white/20"
-            >
-              {showAdvancedView ? "Simple View" : "Advanced View"}
-            </Button>
+            <div className="flex items-center gap-3">
+              {trainingIteration > 0 && (
+                <div className="text-xs text-white bg-blue-700/50 rounded-full px-3 py-1">
+                  Training cycle: {trainingIteration} 
+                  <span className="inline-block w-2 h-2 ml-2 bg-green-400 rounded-full animate-pulse"></span>
+                </div>
+              )}
+              <Button 
+                variant="outline" 
+                onClick={() => setShowAdvancedView(!showAdvancedView)}
+                className="bg-white/10 text-white border-white/30 hover:bg-white/20"
+              >
+                {showAdvancedView ? "Simple View" : "Advanced View"}
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
       <main className="container max-w-7xl mx-auto px-4 py-8">
-        {/* Input Form */}
         <section className="mb-10 hero-content">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {/* Home Team Input */}
             <TeamStatInput
               teamType="home"
               teamName={homeTeam.name}
@@ -228,7 +227,6 @@ const Index = () => {
               className="animate-fade-in"
             />
 
-            {/* Away Team Input */}
             <TeamStatInput
               teamType="away"
               teamName={awayTeam.name}
@@ -246,7 +244,6 @@ const Index = () => {
             />
           </div>
 
-          {/* Team Formations */}
           {showAdvancedView && (homeTeam.name || awayTeam.name) && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-6">
               {homeTeam.name && (
@@ -268,13 +265,13 @@ const Index = () => {
             </div>
           )}
 
-          {/* Display Team Players if teams are selected and not in advanced view */}
-          {!showAdvancedView && (homeTeam.name || awayTeam.name) && (
+          {(homeTeam.name || awayTeam.name) && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-6">
               {homeTeam.name && (
                 <TeamPlayers 
                   teamName={homeTeam.name} 
                   players={homePlayers}
+                  showAll={showAdvancedView}
                   className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-100"
                 />
               )}
@@ -282,13 +279,13 @@ const Index = () => {
                 <TeamPlayers 
                   teamName={awayTeam.name} 
                   players={awayPlayers}
+                  showAll={showAdvancedView}
                   className="bg-gradient-to-br from-red-50 to-pink-50 p-4 rounded-lg border border-red-100"
                 />
               )}
             </div>
           )}
 
-          {/* Submit Button */}
           <Button 
             size="lg" 
             onClick={handlePredict} 
@@ -310,7 +307,6 @@ const Index = () => {
           </Button>
         </section>
 
-        {/* Results Section */}
         {showResults && (
           <section id="results" className="animate-fade-up pt-6">
             <div className="flex items-center mb-6 space-x-3">
@@ -335,14 +331,13 @@ const Index = () => {
                       confidence={prediction.confidence}
                       accuracy={prediction.modelAccuracy}
                       className="animate-scale-in shadow-xl"
-                      />
+                    />
                   ))}
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Match Statistics */}
               <div className="bg-gradient-to-br from-white to-blue-50 rounded-xl border border-blue-100 p-6 shadow-prediction animate-slide-right">
                 <div className="flex items-center mb-4 space-x-2">
                   <div className="p-1.5 bg-blue-100 rounded-full">
@@ -372,7 +367,6 @@ const Index = () => {
                 )}
               </div>
 
-              {/* Model Performance */}
               <div className="bg-gradient-to-br from-white to-purple-50 rounded-xl border border-purple-100 p-6 shadow-prediction animate-slide-left">
                 <div className="flex items-center mb-4 space-x-2">
                   <div className="p-1.5 bg-purple-100 rounded-full">
@@ -389,7 +383,6 @@ const Index = () => {
         )}
       </main>
 
-      {/* Footer */}
       <footer className="bg-gradient-to-r from-gray-800 to-gray-900 text-white border-t border-gray-700 py-6 mt-12">
         <div className="container max-w-7xl mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
