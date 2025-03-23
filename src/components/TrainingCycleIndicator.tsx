@@ -54,7 +54,7 @@ const TrainingCycleIndicator: React.FC<TrainingCycleIndicatorProps> = ({
         <div className="mb-2">
           <div className="flex justify-between text-xs text-gray-500 mb-1">
             <span>Training progress</span>
-            <span>{Math.min(100, progress.toFixed(0))}%</span>
+            <span>{Math.min(100, Math.round(progress))}%</span>
           </div>
           <Progress value={progress} className="h-1.5" />
         </div>
