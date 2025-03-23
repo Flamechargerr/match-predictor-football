@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import FootballIcon from "@/components/FootballIcon";
 import TrainingCycleIndicator from "@/components/TrainingCycleIndicator";
@@ -37,6 +38,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {trainingIteration > 0 && (
+                <TrainingCycleIndicator 
+                  iteration={trainingIteration} 
+                  progress={trainingProgress}
+                  onClick={() => setShowTrainingInfo(!showTrainingInfo)}
+                />
+              )}
               {onToggleView && (
                 <Button 
                   variant="outline" 
@@ -52,16 +60,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({
       </header>
 
       <main className="container max-w-7xl mx-auto px-4 py-8">
-        {trainingIteration > 0 && (
-          <div className="mb-8">
-            <TrainingCycleIndicator 
-              iteration={trainingIteration} 
-              progress={trainingProgress}
-              onClick={() => setShowTrainingInfo(!showTrainingInfo)}
-            />
-          </div>
-        )}
-        
         {showTrainingInfo && trainingIteration > 0 && (
           <div className="mb-8 animate-fade-down">
             <TrainingExplanation 
