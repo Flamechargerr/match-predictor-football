@@ -16,9 +16,9 @@ const TeamPlayers: React.FC<TeamPlayersProps> = ({
   className,
 }) => {
   const displayedPlayers = useMemo(() => {
-    // Show all 11 players in advanced view, only 5 in simple view
-    return showAll ? players.slice(0, 11) : players.slice(0, 5);
-  }, [players, showAll]);
+    // Always show all 11 players regardless of view mode
+    return players.slice(0, 11);
+  }, [players]);
 
   if (!players.length) {
     return null;
@@ -27,7 +27,7 @@ const TeamPlayers: React.FC<TeamPlayersProps> = ({
   return (
     <div className={className}>
       <h3 className="text-lg font-semibold mb-2">
-        {teamName} {showAll ? "Starting XI" : "Key Players"}
+        {teamName} Players
       </h3>
       <ul className="space-y-1">
         {displayedPlayers.map((player, index) => (
@@ -40,9 +40,9 @@ const TeamPlayers: React.FC<TeamPlayersProps> = ({
           </li>
         ))}
       </ul>
-      {!showAll && players.length > 5 && (
+      {!showAll && players.length > 11 && (
         <div className="text-xs text-right italic mt-2 text-gray-500">
-          + {players.length - 5} more players
+          + {players.length - 11} more players
         </div>
       )}
     </div>
