@@ -53,7 +53,8 @@ const Index = () => {
   useEffect(() => {
     const trainingInterval = setInterval(() => {
       setTrainingIteration(prev => prev + 1);
-      setTrainingProgress(prev => (prev + 5) % 100);
+      // Make progress more visually interesting by making it cycle
+      setTrainingProgress(prev => (prev + 33) % 100);
       mlService.improveModels();
     }, 30000);
 

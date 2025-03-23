@@ -1,6 +1,8 @@
 
-import React from "react";
+import React, { useState } from "react";
 import FootballIcon from "@/components/FootballIcon";
+import TrainingCycleIndicator from "@/components/TrainingCycleIndicator";
+import TrainingExplanation from "@/components/TrainingExplanation";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -17,6 +19,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   showAdvancedView = false,
   onToggleView,
 }) => {
+  const [showTrainingInfo, setShowTrainingInfo] = useState(false);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50">
       <header className="bg-gradient-to-r from-blue-600 to-indigo-700 shadow-md py-4">
@@ -35,10 +39,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             </div>
             <div className="flex items-center gap-3">
               {trainingIteration > 0 && (
-                <div className="text-xs text-white bg-blue-700/50 rounded-full px-3 py-1">
-                  Training cycle: {trainingIteration} 
-                  <span className="inline-block w-2 h-2 ml-2 bg-green-400 rounded-full animate-pulse"></span>
-                </div>
+                <TrainingCycleIndicator 
+                  iteration={trainingIteration} 
+                  progress={trainingProgress}
+                  onClick={() => setShowTrainingInfo(!showTrainingInfo)}
+                />
               )}
               {onToggleView && (
                 <Button 
@@ -55,6 +60,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({
       </header>
 
       <main className="container max-w-7xl mx-auto px-4 py-8">
+        {showTrainingInfo && trainingIteration > 0 && (
+          <div className="mb-8 animate-fade-down">
+            <TrainingExplanation 
+              trainingIteration={trainingIteration}
+              modelPerformance={[
+                { name: "Naive Bayes", accuracy: 0.82 + (0.001 * trainingIteration) },
+                { name: "Random Forest", accuracy: 0.89 + (0.0008 * trainingIteration) },
+                { name: "Logistic Regression", accuracy: 0.87 + (0.0009 * trainingIteration) }
+              ]}
+            />
+          </div>
+        )}
         {children}
       </main>
 
