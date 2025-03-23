@@ -16,7 +16,7 @@ const TeamPlayers: React.FC<TeamPlayersProps> = ({
   className,
 }) => {
   const displayedPlayers = useMemo(() => {
-    // Show 11 players in advanced view, only 5 in simple view
+    // Show all 11 players in advanced view, only 5 in simple view
     return showAll ? players.slice(0, 11) : players.slice(0, 5);
   }, [players, showAll]);
 

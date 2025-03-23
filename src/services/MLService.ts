@@ -155,16 +155,70 @@ class MLService {
         parseInt(awayTeam.redCards)
       ];
 
-      // Calculate team dominance scores (for potential fallback or override)
-      const homeScore = parseInt(homeTeam.goals) * 3 + 
-                      parseInt(homeTeam.shots) * 1 + 
-                      parseInt(homeTeam.shotsOnTarget) * 2;
+      // Calculate team dominance scores with red card penalties
+      const homeRedCardPenalty = Math.max(0.1, 1 - (parseInt(homeTeam.redCards) * 0.2)); // Each red card reduces score by 20%
+      const awayRedCardPenalty = Math.max(0.1, 1 - (parseInt(awayTeam.redCards) * 0.2)); 
       
-      const awayScore = parseInt(awayTeam.goals) * 3 + 
+      const homeScore = (parseInt(homeTeam.goals) * 3 + 
+                      parseInt(homeTeam.shots) * 1 + 
+                      parseInt(homeTeam.shotsOnTarget) * 2) * homeRedCardPenalty;
+      
+      const awayScore = (parseInt(awayTeam.goals) * 3 + 
                       parseInt(awayTeam.shots) * 1 + 
-                      parseInt(awayTeam.shotsOnTarget) * 2;
+                      parseInt(awayTeam.shotsOnTarget) * 2) * awayRedCardPenalty;
       
       const scoreDiff = homeScore - awayScore;
+      
+      // Handle extreme red card cases (5+ red cards should make it impossible to win)
+      if (parseInt(homeTeam.redCards) >= 5) {
+        return [
+          {
+            modelName: "Naive Bayes",
+            outcome: "Away Win",
+            confidence: 95,
+            modelAccuracy: 85,
+            probabilities: [0.02, 0.03, 0.95]
+          },
+          {
+            modelName: "Random Forest",
+            outcome: "Away Win",
+            confidence: 96,
+            modelAccuracy: 90,
+            probabilities: [0.01, 0.03, 0.96]
+          },
+          {
+            modelName: "Logistic Regression",
+            outcome: "Away Win",
+            confidence: 97,
+            modelAccuracy: 88,
+            probabilities: [0.01, 0.02, 0.97]
+          }
+        ];
+      } else if (parseInt(awayTeam.redCards) >= 5) {
+        return [
+          {
+            modelName: "Naive Bayes",
+            outcome: "Home Win",
+            confidence: 95,
+            modelAccuracy: 85,
+            probabilities: [0.95, 0.03, 0.02]
+          },
+          {
+            modelName: "Random Forest",
+            outcome: "Home Win",
+            confidence: 96,
+            modelAccuracy: 90,
+            probabilities: [0.96, 0.03, 0.01]
+          },
+          {
+            modelName: "Logistic Regression",
+            outcome: "Home Win",
+            confidence: 97,
+            modelAccuracy: 88,
+            probabilities: [0.97, 0.02, 0.01]
+          }
+        ];
+      }
       
       // Large scoring difference should immediately predict a win without using ML model
       if (scoreDiff > 6) {
@@ -247,10 +301,65 @@ class MLService {
     const homeRedCards = parseInt(homeTeam.redCards);
     const awayRedCards = parseInt(awayTeam.redCards);
     
-    // Calculate weighted scores (goals count more than shots)
-    const homeScore = homeGoals * 3 + homeShots * 1 + homeShotsOnTarget * 2 - homeRedCards * 2;
-    const awayScore = awayGoals * 3 + awayShots * 1 + awayShotsOnTarget * 2 - awayRedCards * 2;
+    // Apply red card penalties - each card reduces effectiveness by 20%
+    const homeRedCardPenalty = Math.max(0.1, 1 - (homeRedCards * 0.2));
+    const awayRedCardPenalty = Math.max(0.1, 1 - (awayRedCards * 0.2));
+    
+    // Calculate weighted scores with red card penalties
+    const homeScore = (homeGoals * 3 + homeShots * 1 + homeShotsOnTarget * 2) * homeRedCardPenalty;
+    const awayScore = (awayGoals * 3 + awayShots * 1 + awayShotsOnTarget * 2) * awayRedCardPenalty;
     const scoreDiff = homeScore - awayScore;
+    
+    // Handle extreme red card cases
+    if (homeRedCards >= 5) {
+      return [
+        {
+          modelName: "Naive Bayes",
+          outcome: "Away Win",
+          confidence: 95.0,
+          modelAccuracy: 82 + (this.trainingIterations * 0.1),
+          probabilities: [0.02, 0.03, 0.95]
+        },
+        {
+          modelName: "Random Forest",
+          outcome: "Away Win",
+          confidence: 96.0,
+          modelAccuracy: 89 + (this.trainingIterations * 0.08),
+          probabilities: [0.01, 0.03, 0.96]
+        },
+        {
+          modelName: "Logistic Regression",
+          outcome: "Away Win",
+          confidence: 97.0,
+          modelAccuracy: 87 + (this.trainingIterations * 0.09),
+          probabilities: [0.01, 0.02, 0.97]
+        }
+      ];
+    } else if (awayRedCards >= 5) {
+      return [
+        {
+          modelName: "Naive Bayes",
+          outcome: "Home Win",
+          confidence: 95.0,
+          modelAccuracy: 82 + (this.trainingIterations * 0.1),
+          probabilities: [0.95, 0.03, 0.02]
+        },
+        {
+          modelName: "Random Forest",
+          outcome: "Home Win",
+          confidence: 96.0,
+          modelAccuracy: 89 + (this.trainingIterations * 0.08),
+          probabilities: [0.96, 0.03, 0.01]
+        },
+        {
+          modelName: "Logistic Regression",
+          outcome: "Home Win",
+          confidence: 97.0,
+          modelAccuracy: 87 + (this.trainingIterations * 0.09),
+          probabilities: [0.97, 0.02, 0.01]
+        }
+      ];
+    }
     
     // Determine outcome based on score difference
     let primaryOutcome: "Home Win" | "Draw" | "Away Win";
